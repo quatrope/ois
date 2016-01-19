@@ -28,7 +28,6 @@
 """
 
 import numpy as np
-import math
 from scipy import signal
 from scipy import ndimage
 
@@ -177,7 +176,7 @@ def _coeffstokernel(coeffs, gausslist, kernelshape=(10, 10)):
 
 def _coeffstobackground(shape, coeffs, bkgdeg=None):
     if bkgdeg is None:
-        bkgdeg = int(-1.5 + 0.5 * math.sqrt(9 + 8 * (len(coeffs) - 1)))
+        bkgdeg = int(-1.5 + 0.5 * np.sqrt(9 + 8 * (len(coeffs) - 1)))
 
     h, w = shape
     y, x = np.mgrid[:h, :w]
