@@ -1,5 +1,5 @@
 import unittest
-from ois import ois
+from ois import subtract
 import numpy as np
 
 
@@ -28,9 +28,10 @@ class TestSubtract(unittest.TestCase):
                 center = ((h - 1) / 2., (w - 1) / 2.)
             x0, y0 = center
             x, y = np.meshgrid(range(w), range(h))
-            norm = np.sqrt(2 * np.pi * (sx ** 2) * (sy ** 2))
-            return np.exp(-0.5 * ((x - x0) ** 2 / sx ** 2 +
-                          (y - y0) ** 2 / sy ** 2)) / norm
+            kernel = np.exp(-0.5 * ((x - x0) ** 2 / sx ** 2 +
+                            (y - y0) ** 2 / sy ** 2))
+            norm = kernel.sum()
+            return kernel / norm
 
         def createkernel(coeffs, gausslist, kernelshape=(10, 10)):
             kh, kw = kernelshape
@@ -91,8 +92,8 @@ class TestSubtract(unittest.TestCase):
 
     def test_optimalkernelandbkg(self):
         self.degradereference()
-        ruined_image, optKernel, bkg = ois.subtract.getOptimalKernelAndBkg(
-            self.image, self.ref_img, bkgDegree=2, kernelshape=(11, 11))
+        ruined_image, optKernel, bkg = subtract.optimalkernelandbkg(
+            self.image, self.ref_img, bkgdegree=2, kernelshape=(11, 11))
         norm_diff = np.linalg.norm(ruined_image - self.image)
         self.assertLess(norm_diff, 1E-6)
 
