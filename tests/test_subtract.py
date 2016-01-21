@@ -14,6 +14,7 @@ class TestSubtract(unittest.TestCase):
             'http://homepages.cae.wisc.edu/~ece533/images/cameraman.tif')
             .read())
         self.ref_img = np.array(Image.open(f), dtype='float32')
+        self.degradereference()
 
     def tearDown(self):
         pass
@@ -61,44 +62,77 @@ class TestSubtract(unittest.TestCase):
 
         # mygausslist = [{'sx': 2., 'sy': 2., 'modPolyDeg': 3},
         # {'sx': 1., 'sy': 3.}, {'sx': 3., 'sy': 1.}]
-        mygausslist = [{'sx': 2., 'sy': 2., 'modPolyDeg': 3}]
+        self.mygausslist = [{'sx': 2., 'sy': 2., 'modPolyDeg': 3}]
         # mykcoeffs = np.random.rand(10) * 90 + 10
         mykcoeffs = np.array([0., -7.3, 0., 0., 0., 2., 0., 1.5, 0., 0.])
 
-        mykernel = createkernel(mykcoeffs, mygausslist, kernelshape=(11, 11))
+        mykernel = createkernel(mykcoeffs, self.mygausslist,
+                                kernelshape=(11, 11))
         # mykernel = gauss()
         kh, kw = mykernel.shape
 
         self.image = signal.convolve2d(self.ref_img, mykernel, mode='same')
 
         # Add a varying background:
-        bkgdeg = 2
+        self.bkgdeg = 2
 
         h, w = self.ref_img.shape
         y, x = np.mgrid[:h, :w]
-        allxs = [pow(x, i) for i in range(bkgdeg + 1)]
-        allys = [pow(y, i) for i in range(bkgdeg + 1)]
+        allxs = [pow(x, i) for i in range(self.bkgdeg + 1)]
+        allys = [pow(y, i) for i in range(self.bkgdeg + 1)]
 
         mybkg = np.zeros(self.ref_img.shape)
         mybkgcoeffs = np.random.rand(6) * 1E-3
 
         ind = 0
         for i, anX in enumerate(allxs):
-            for aY in allys[:bkgdeg + 1 - i]:
+            for aY in allys[:self.bkgdeg + 1 - i]:
                 mybkg += mybkgcoeffs[ind] * anX * aY
                 ind += 1
 
         self.image += mybkg
 
     def test_optimalkernelandbkg(self):
-        self.degradereference()
+        # Test Bramich
         ruined_image, optKernel, bkg = subtract.optimalkernelandbkg(
-            self.image, self.ref_img, bkgdegree=2, kernelshape=(11, 11))
-        norm_diff = np.linalg.norm(ruined_image - self.image)
-        self.assertLess(norm_diff, 1E-6)
+            self.image, self.ref_img, bkgdegree=self.bkgdeg,
+            kernelshape=(11, 11))
+        norm_diff = np.linalg.norm(ruined_image - self.image) \
+            / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+
+        # Test Alard & Lupton
+        ruined_image, optKernel, bkg = subtract.optimalkernelandbkg(
+            self.image, self.ref_img, gausslist=self.mygausslist,
+            bkgdegree=self.bkgdeg,
+            kernelshape=(11, 11))
+        norm_diff = np.linalg.norm(ruined_image - self.image) \
+            / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
 
     def test_subtractongrid(self):
-        pass
+
+        # Test without mask:
+        # Test Bramich
+        subt_img = subtract.subtractongrid(self.image, self.ref_img,
+                                           gausslist=None,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+
+        # Test Alard & Lupton
+        subt_img = subtract.subtractongrid(self.image, self.ref_img,
+                                           gausslist=self.mygausslist,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+
+        # Test when a mask is added on the image
+        # mask = np.array(self.ref_img.shape)
 
 
 if __name__ == "__main__":
