@@ -131,8 +131,87 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
+        # Assert that subt_img is always a masked array?
+        # Does it ever return a plain ndarray?
+
         # Test when a mask is added on the image
-        # mask = np.array(self.ref_img.shape)
+        mask = np.zeros(self.image.shape, dtype='bool')
+        h, w = mask.shape
+        mask[h / 10:h / 10 + 10, w / 10: w / 10 + 10] = True
+        mask[:, 50:60] = True
+        image_masked = np.ma.array(self.image, mask=mask)
+
+        mask_ref = np.zeros(self.ref_img.shape, dtype='bool')
+        mask_ref[100:110, 100:110] = True
+        mask_ref[200:205, :] = True
+        ref_img_masked = np.ma.array(self.ref_img, mask=mask_ref)
+
+        # Test Bramich:
+        # Image masked, ref masked
+        subt_img = subtract.subtractongrid(image_masked, ref_img_masked,
+                                           gausslist=None,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+        # Image not masked, ref masked
+        subt_img = subtract.subtractongrid(self.image, ref_img_masked,
+                                           gausslist=None,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+        # Image masked, ref not masked
+        subt_img = subtract.subtractongrid(image_masked, self.ref_img,
+                                           gausslist=None,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+        # Image not masked, ref masked
+        subt_img = subtract.subtractongrid(self.image, ref_img_masked,
+                                           gausslist=None,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+
+        # Test Alard & Lupton
+        # Image masked, ref masked
+        subt_img = subtract.subtractongrid(image_masked, ref_img_masked,
+                                           gausslist=self.mygausslist,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+        # Image masked, ref not masked
+        subt_img = subtract.subtractongrid(image_masked, self.ref_img,
+                                           gausslist=self.mygausslist,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+        # Image not masked, ref masked
+        subt_img = subtract.subtractongrid(self.image, ref_img_masked,
+                                           gausslist=self.mygausslist,
+                                           bkgdegree=self.bkgdeg,
+                                           kernelshape=(11, 11),
+                                           gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
 
 
 if __name__ == "__main__":
