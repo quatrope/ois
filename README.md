@@ -11,7 +11,7 @@ It uses the subtraction algorithm described in [Alard&Lupton (1998)][1] as well 
 
 Usage example
 
-    >>> from his import subtract
+    >>> from ois import subtract
     >>> subtraction = subtract.optimal_subtract(image, image_ref)
 
 More information available on docstrings
