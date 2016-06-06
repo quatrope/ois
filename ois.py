@@ -1,14 +1,14 @@
-"""@package subtraction
+"""@package ois
 
-    Subtraction module
-    -----------------
+    Optimal Image Subtraction (OIS) module
+    --------------------------------------
 
     A collection of tools to perform optimal image differencing
     for the Transient Optical Robotic Observatory of the South (TOROS).
 
     ### Usage example (from python):
 
-        >>> from toros import subtraction
+        >>> import ois
         >>> conv_image, optimalKernel, background =
             ois.optimalkernelandbkg(image, referenceImage)
 
@@ -343,3 +343,7 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
             (img_stamps[ind] - opti)[sly_out, slx_out]
 
     return subtract_collage
+
+
+if __name__ == '__main__':
+    pass
