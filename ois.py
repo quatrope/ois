@@ -1,5 +1,4 @@
-"""@package ois
-
+"""
     Optimal Image Subtraction (OIS) module
     --------------------------------------
 
@@ -20,12 +19,14 @@
     * -h, --help: Prints this help and exits.
     * -v, --version: Prints version information and exits.
 
-    Martin Beroiz - 2014
+    (c) Martin Beroiz
 
-    email: <martinberoiz@phys.utb.edu>
+    email: <martinberoiz@gmail.com>
 
     University of Texas at San Antonio
 """
+
+__version__ = '0.1a1'
 
 import numpy as np
 from scipy import signal
@@ -346,4 +347,4 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
 
 
 if __name__ == '__main__':
-    pass
+    print(__doc__)
