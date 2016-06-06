@@ -8,7 +8,7 @@ The easiest way to install is using pip::
 
     pip install ois
 
-This will install the latest stable version on PIPy.
+This will install the latest stable version on PyPI.
 
 From the development distribution (unstable)
 --------------------------------------------
