@@ -7,6 +7,7 @@ Contents:
    :maxdepth: 2
 
    installation
+   usage
 
 Indices and tables
 ==================
