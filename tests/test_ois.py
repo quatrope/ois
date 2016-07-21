@@ -5,15 +5,9 @@ import numpy as np
 
 class TestSubtract(unittest.TestCase):
     def setUp(self):
-        import urllib
-        import cStringIO
         from PIL import Image
-        # http://homepages.cae.wisc.edu/~ece533/images/cameraman.tif
-        # http://links.uwaterloo.ca/Repository/TIF/camera.tif
-        f = cStringIO.StringIO(urllib.urlopen(
-            'http://homepages.cae.wisc.edu/~ece533/images/cameraman.tif')
-            .read())
-        self.ref_img = np.array(Image.open(f), dtype='float32')
+        self.ref_img = np.array(
+            Image.open("tests/cameraman.tif"), dtype='float32')
         self.degradereference()
 
     def tearDown(self):
