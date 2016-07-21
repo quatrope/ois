@@ -1,13 +1,15 @@
 import unittest
 import ois
 import numpy as np
+import os
 
 
 class TestSubtract(unittest.TestCase):
     def setUp(self):
         from PIL import Image
-        self.ref_img = np.array(
-            Image.open("tests/cameraman.tif"), dtype='float32')
+        this_dir = os.path.abspath(os.path.dirname(__file__))
+        cameraman_path = os.path.join(this_dir, "cameraman.tif")
+        self.ref_img = np.array(Image.open(cameraman_path), dtype='float32')
         self.degradereference()
 
     def tearDown(self):
