@@ -195,6 +195,21 @@ def _coeffstobackground(shape, coeffs, bkgdeg=None):
     return mybkg
 
 
+def clean_gausslist(gausslist, kernelshape):
+    if gausslist is None:
+        return
+    for agauss in gausslist:
+        if 'center' not in agauss:
+            h, w = kernelshape
+            agauss['center'] = ((h - 1) / 2., (w - 1) / 2.)
+        if 'modPolyDeg' not in agauss:
+            agauss['modPolyDeg'] = 2
+        if 'sx' not in agauss:
+            agauss['sx'] = 2.
+        if 'sy' not in agauss:
+            agauss['sy'] = 2.
+
+
 def optimalkernelandbkg(image, refimage, gausslist=None,
                         bkgdegree=3, kernelshape=(11, 11)):
     """Do Optimal Image Subtraction and return optimal kernel and background.
@@ -221,14 +236,22 @@ def optimalkernelandbkg(image, refimage, gausslist=None,
         print("This can only work with kernels of odd sizes.")
         return None, None, None
 
+    clean_gausslist(gausslist, kernelshape)
+
+    def has_mask(image):
+        is_masked_array = isinstance(image, np.ma.MaskedArray)
+        if is_masked_array and isinstance(image.mask, np.ndarray):
+            return True
+        return False
+
     badpixmask = None
-    if isinstance(refimage, np.ma.MaskedArray):
-        refmask = ndimage.binary_dilation(refimage.mask.astype('uint8'),
-                                          structure=np.ones(kernelshape))
-        badpixmask = refmask.astype('bool')
-        if isinstance(image, np.ma.MaskedArray):
+    if has_mask(refimage):
+        badpixmask = ndimage.binary_dilation(
+            refimage.mask.astype('uint8'), structure=np.ones(kernelshape))\
+            .astype('bool')
+        if has_mask(image):
             badpixmask += image.mask
-    elif isinstance(image, np.ma.MaskedArray):
+    elif has_mask(image):
         badpixmask = image.mask
 
     c = _getcvectors(refimage, kernelshape, gausslist, bkgdegree, badpixmask)
@@ -251,8 +274,7 @@ def optimalkernelandbkg(image, refimage, gausslist=None,
 
     kernel = _coeffstokernel(coeffs[:nkcoeffs], gausslist, kernelshape)
     background = _coeffstobackground(image.shape, coeffs[nkcoeffs:])
-    if isinstance(refimage, np.ma.MaskedArray) or \
-            isinstance(image, np.ma.MaskedArray):
+    if has_mask(refimage) or has_mask(image):
         background = np.ma.array(background, mask=badpixmask)
     optimal_image = signal.convolve2d(refimage, kernel, mode='same') \
         + background
