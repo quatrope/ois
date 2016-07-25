@@ -44,7 +44,7 @@ def _gauss(shape=(10, 10), center=None, sx=2, sy=2):
     return k / norm
 
 
-def _cforgauss(refimage, kernelshape, gausslist, modbkgdeg, badpixmask):
+def _cforgauss(refimage, kernelshape, gausslist, modbkgdeg):
     # degmod is the degree of the modulating polyomial
     kh, kw = kernelshape
 
@@ -66,24 +66,15 @@ def _cforgauss(refimage, kernelshape, gausslist, modbkgdeg, badpixmask):
         gaussk = _gauss(shape=(kh, kw), center=center,
                         sx=aGauss['sx'], sy=aGauss['sy'])
 
-        if badpixmask is not None:
-            newc = [np.ma.array(
-                    signal.convolve2d(refimage, gaussk * aU * aV, mode='same'),
-                    mask=badpixmask)
-                    for i, aU in enumerate(allus)
-                    for aV in allvs[:degmod + 1 - i]
-                    ]
-        else:
-            newc = [signal.convolve2d(refimage, gaussk * aU * aV, mode='same')
-                    for i, aU in enumerate(allus)
-                    for aV in allvs[:degmod + 1 - i]
-                    ]
-
+        newc = [signal.convolve2d(refimage, gaussk * aU * aV, mode='same')
+                for i, aU in enumerate(allus)
+                for aV in allvs[:degmod + 1 - i]
+                ]
         c.extend(newc)
     return c
 
 
-def _cfordelta(refimage, kernelshape, badpixmask):
+def _cfordelta(refimage, kernelshape):
     kh, kw = kernelshape
     h, w = refimage.shape
 
@@ -101,10 +92,7 @@ def _cfordelta(refimage, kernelshape, badpixmask):
             min_col_ref = max(0, kw // 2 - j)
             cij[min_row:max_row, min_col:max_col] = \
                 refimage[min_row_ref:max_row_ref, min_col_ref:max_col_ref]
-            if badpixmask is not None:
-                c.extend([np.ma.array(cij, mask=badpixmask)])
-            else:
-                c.extend([cij])
+            c.extend([cij])
 
     # This is more pythonic but much slower (50 times slower)
     # canonBasis = np.identity(kw*kh).reshape(kh*kw,kh,kw)
@@ -115,15 +103,13 @@ def _cfordelta(refimage, kernelshape, badpixmask):
     return c
 
 
-def _getcvectors(refimage, kernelshape, gausslist, modbkgdeg=2,
-                 badpixmask=None):
+def _getcvectors(refimage, kernelshape, gausslist, modbkgdeg=2):
 
     c = []
     if gausslist is not None:
-        c.extend(_cforgauss(refimage, kernelshape, gausslist,
-                            modbkgdeg, badpixmask))
+        c.extend(_cforgauss(refimage, kernelshape, gausslist, modbkgdeg))
     else:
-        c.extend(_cfordelta(refimage, kernelshape, badpixmask))
+        c.extend(_cfordelta(refimage, kernelshape))
 
     # finally add here the background variation coefficients:
     h, w = refimage.shape
@@ -131,13 +117,8 @@ def _getcvectors(refimage, kernelshape, gausslist, modbkgdeg=2,
     allxs = [pow(x, i) for i in range(modbkgdeg + 1)]
     allys = [pow(y, i) for i in range(modbkgdeg + 1)]
 
-    if badpixmask is not None:
-        newc = [np.ma.array(anX * aY, mask=badpixmask)
-                for i, anX in enumerate(allxs)
-                for aY in allys[:modbkgdeg + 1 - i]]
-    else:
-        newc = [anX * aY for i, anX in enumerate(allxs)
-                for aY in allys[:modbkgdeg + 1 - i]]
+    newc = [anX * aY for i, anX in enumerate(allxs)
+            for aY in allys[:modbkgdeg + 1 - i]]
 
     c.extend(newc)
     return c
@@ -254,9 +235,15 @@ def optimalkernelandbkg(image, refimage, gausslist=None,
     elif has_mask(image):
         badpixmask = image.mask
 
-    c = _getcvectors(refimage, kernelshape, gausslist, bkgdegree, badpixmask)
-    m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
-    b = np.array([(image * ci).sum() for ci in c])
+    c = _getcvectors(refimage, kernelshape, gausslist, bkgdegree)
+
+    if badpixmask is None:
+        m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
+        b = np.array([(image * ci).sum() for ci in c])
+    else:
+        m = np.array([[(ci * cj)[~badpixmask].sum() for ci in c] for cj in c])
+        b = np.array([(image * ci)[~badpixmask].sum() for ci in c])
+
     coeffs = np.linalg.solve(m, b)
 
     # nkcoeffs is the number of coefficients related to the kernel fit,
