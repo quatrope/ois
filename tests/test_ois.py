@@ -100,7 +100,7 @@ class TestSubtract(unittest.TestCase):
 
         self.image += mybkg
 
-    def test_optimalkernelandbkg(self):
+    def test_optimalkernelandbkg_bramich(self):
         # Test Bramich
         ruined_image, optKernel, bkg = ois.optimalkernelandbkg(
             self.image, self.ref_img, bkgdegree=self.bkgdeg,
@@ -109,6 +109,7 @@ class TestSubtract(unittest.TestCase):
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
+    def test_optimalkernelandbkg_alardlp(self):
         # Test Alard & Lupton
         ruined_image, optKernel, bkg = ois.optimalkernelandbkg(
             self.image, self.ref_img, gausslist=self.mygausslist,
