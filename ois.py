@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.1a2'
+__version__ = '0.1a3dev'
 
 import numpy as np
 from scipy import signal
@@ -212,6 +212,7 @@ def optimalkernelandbkg(image, refimage, gausslist=None,
         m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
         b = np.array([(image * ci).sum() for ci in c])
     else:
+        # These next two lines take most of the computation time
         m = np.array([[(ci * cj)[~badpixmask].sum() for ci in c] for cj in c])
         b = np.array([(image * ci)[~badpixmask].sum() for ci in c])
 

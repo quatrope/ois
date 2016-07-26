@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='ois',
-      version='0.1a2',
+      version='0.1a3dev',
       description='Optimal Image Subtraction',
       author='Martin Beroiz',
       author_email='martinberoiz@gmail.com',
