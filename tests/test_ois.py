@@ -12,6 +12,18 @@ class TestSubtract(unittest.TestCase):
         self.ref_img = np.array(Image.open(cameraman_path), dtype='float32')
         self.degradereference()
 
+        # Make also the masked versions
+        mask = np.zeros(self.image.shape, dtype='bool')
+        h, w = mask.shape
+        mask[h / 10:h / 10 + 10, w / 10: w / 10 + 10] = True
+        mask[:, 50:60] = True
+        self.image_masked = np.ma.array(self.image, mask=mask)
+
+        mask_ref = np.zeros(self.ref_img.shape, dtype='bool')
+        mask_ref[100:110, 100:110] = True
+        mask_ref[200:205, :] = True
+        self.ref_img_masked = np.ma.array(self.ref_img, mask=mask_ref)
+
     def tearDown(self):
         pass
 
@@ -106,10 +118,8 @@ class TestSubtract(unittest.TestCase):
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
-    def test_subtractongrid(self):
-
-        # Test without mask:
-        # Test Bramich
+    def test_subtractongrid_bramich_ri(self):
+        # Test Bramich without masks:
         subt_img = ois.subtractongrid(self.image, self.ref_img,
                                       gausslist=None,
                                       bkgdegree=self.bkgdeg,
@@ -118,7 +128,41 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
-        # Test Alard & Lupton
+    def test_subtractongrid_bramich_rmim(self):
+        # Test Bramich, image masked, ref masked
+        subt_img = ois.subtractongrid(self.image_masked, self.ref_img_masked,
+                                      gausslist=None,
+                                      bkgdegree=self.bkgdeg,
+                                      kernelshape=(11, 11),
+                                      gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(self.image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+
+    def test_subtractongrid_bramich_rmi(self):
+        # Test Bramich image not masked, ref masked
+        subt_img = ois.subtractongrid(self.image, self.ref_img_masked,
+                                      gausslist=None,
+                                      bkgdegree=self.bkgdeg,
+                                      kernelshape=(11, 11),
+                                      gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+
+    def test_subtractongrid_bramich_rim(self):
+        # Test Bramich image masked, ref not masked
+        subt_img = ois.subtractongrid(self.image_masked, self.ref_img,
+                                      gausslist=None,
+                                      bkgdegree=self.bkgdeg,
+                                      kernelshape=(11, 11),
+                                      gridshape=(1, 1))
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(self.image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+
+    def test_subtractongrid_alardlp_ri(self):
+        # Test Alard & Lupton without masks:
         subt_img = ois.subtractongrid(self.image, self.ref_img,
                                       gausslist=self.mygausslist,
                                       bkgdegree=self.bkgdeg,
@@ -127,80 +171,31 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
-        # Assert that subt_img is always a masked array?
-        # Does it ever return a plain ndarray?
-
-        # Test when a mask is added on the image
-        mask = np.zeros(self.image.shape, dtype='bool')
-        h, w = mask.shape
-        mask[h / 10:h / 10 + 10, w / 10: w / 10 + 10] = True
-        mask[:, 50:60] = True
-        image_masked = np.ma.array(self.image, mask=mask)
-
-        mask_ref = np.zeros(self.ref_img.shape, dtype='bool')
-        mask_ref[100:110, 100:110] = True
-        mask_ref[200:205, :] = True
-        ref_img_masked = np.ma.array(self.ref_img, mask=mask_ref)
-
-        # Test Bramich:
-        # Image masked, ref masked
-        subt_img = ois.subtractongrid(image_masked, ref_img_masked,
-                                      gausslist=None,
-                                      bkgdegree=self.bkgdeg,
-                                      kernelshape=(11, 11),
-                                      gridshape=(1, 1))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        # Image not masked, ref masked
-        subt_img = ois.subtractongrid(self.image, ref_img_masked,
-                                      gausslist=None,
-                                      bkgdegree=self.bkgdeg,
-                                      kernelshape=(11, 11),
-                                      gridshape=(1, 1))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        # Image masked, ref not masked
-        subt_img = ois.subtractongrid(image_masked, self.ref_img,
-                                      gausslist=None,
-                                      bkgdegree=self.bkgdeg,
-                                      kernelshape=(11, 11),
-                                      gridshape=(1, 1))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        # Image not masked, ref masked
-        subt_img = ois.subtractongrid(self.image, ref_img_masked,
-                                      gausslist=None,
-                                      bkgdegree=self.bkgdeg,
-                                      kernelshape=(11, 11),
-                                      gridshape=(1, 1))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-
-        # Test Alard & Lupton
-        # Image masked, ref masked
-        subt_img = ois.subtractongrid(image_masked, ref_img_masked,
+    def test_subtractongrid_alardlp_rmim(self):
+        # Test Alard & Lupton, image masked, ref masked
+        subt_img = ois.subtractongrid(self.image_masked, self.ref_img_masked,
                                       gausslist=self.mygausslist,
                                       bkgdegree=self.bkgdeg,
                                       kernelshape=(11, 11),
                                       gridshape=(1, 1))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(image_masked.compressed())
+            / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        # Image masked, ref not masked
-        subt_img = ois.subtractongrid(image_masked, self.ref_img,
+
+    def test_subtractongrid_alardlp_rim(self):
+        # Test Alard & Lupton, image masked, ref not masked
+        subt_img = ois.subtractongrid(self.image_masked, self.ref_img,
                                       gausslist=self.mygausslist,
                                       bkgdegree=self.bkgdeg,
                                       kernelshape=(11, 11),
                                       gridshape=(1, 1))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(image_masked.compressed())
+            / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        # Image not masked, ref masked
-        subt_img = ois.subtractongrid(self.image, ref_img_masked,
+
+    def test_subtractongrid_alardlp_rmi(self):
+        # Test Alard & Lupton, image not masked, ref masked
+        subt_img = ois.subtractongrid(self.image, self.ref_img_masked,
                                       gausslist=self.mygausslist,
                                       bkgdegree=self.bkgdeg,
                                       kernelshape=(11, 11),
