@@ -26,17 +26,15 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.1a1'
+__version__ = '0.1a2'
 
 import numpy as np
 from scipy import signal
 from scipy import ndimage
 
 
-def _gauss(shape=(10, 10), center=None, sx=2, sy=2):
+def _gauss(shape, center, sx, sy):
     h, w = shape
-    if center is None:
-        center = ((h - 1) / 2., (w - 1) / 2.)
     x0, y0 = center
     x, y = np.meshgrid(range(w), range(h))
     k = np.exp(-0.5 * ((x - x0) ** 2 / sx ** 2 + (y - y0) ** 2 / sy ** 2))
@@ -44,31 +42,20 @@ def _gauss(shape=(10, 10), center=None, sx=2, sy=2):
     return k / norm
 
 
-def _cforgauss(refimage, kernelshape, gausslist, modbkgdeg):
-    # degmod is the degree of the modulating polyomial
+def _cforgauss(refimage, kernelshape, gausslist):
     kh, kw = kernelshape
 
     v, u = np.mgrid[:kh, :kw]
     c = []
     for aGauss in gausslist:
-        if 'modPolyDeg' in aGauss:
-            degmod = aGauss['modPolyDeg']
-        else:
-            degmod = 2
-
-        allus = [pow(u, i) for i in range(degmod + 1)]
-        allvs = [pow(v, i) for i in range(degmod + 1)]
-
-        if 'center' in aGauss:
-            center = aGauss['center']
-        else:
-            center = None
-        gaussk = _gauss(shape=(kh, kw), center=center,
+        n = aGauss['modPolyDeg'] + 1
+        allus = [pow(u, i) for i in range(n)]
+        allvs = [pow(v, i) for i in range(n)]
+        gaussk = _gauss(shape=(kh, kw), center=aGauss['center'],
                         sx=aGauss['sx'], sy=aGauss['sy'])
-
         newc = [signal.convolve2d(refimage, gaussk * aU * aV, mode='same')
                 for i, aU in enumerate(allus)
-                for aV in allvs[:degmod + 1 - i]
+                for aV in allvs[:n - i]
                 ]
         c.extend(newc)
     return c
@@ -77,7 +64,6 @@ def _cforgauss(refimage, kernelshape, gausslist, modbkgdeg):
 def _cfordelta(refimage, kernelshape):
     kh, kw = kernelshape
     h, w = refimage.shape
-
     c = []
     for i in range(kh):
         for j in range(kw):
@@ -103,11 +89,10 @@ def _cfordelta(refimage, kernelshape):
     return c
 
 
-def _getcvectors(refimage, kernelshape, gausslist, modbkgdeg=2):
-
+def _getcvectors(refimage, kernelshape, gausslist, modbkgdeg):
     c = []
     if gausslist is not None:
-        c.extend(_cforgauss(refimage, kernelshape, gausslist, modbkgdeg))
+        c.extend(_cforgauss(refimage, kernelshape, gausslist))
     else:
         c.extend(_cfordelta(refimage, kernelshape))
 
@@ -124,7 +109,7 @@ def _getcvectors(refimage, kernelshape, gausslist, modbkgdeg=2):
     return c
 
 
-def _coeffstokernel(coeffs, gausslist, kernelshape=(10, 10)):
+def _coeffstokernel(coeffs, gausslist, kernelshape):
     kh, kw = kernelshape
     if gausslist is None:
         kernel = coeffs[:kw * kh].reshape(kh, kw)
@@ -132,24 +117,14 @@ def _coeffstokernel(coeffs, gausslist, kernelshape=(10, 10)):
         v, u = np.mgrid[:kh, :kw]
         kernel = np.zeros((kh, kw))
         for aGauss in gausslist:
-            if 'modPolyDeg' in aGauss:
-                degmod = aGauss['modPolyDeg']
-            else:
-                degmod = 2
-
-            allus = [pow(u, i) for i in range(degmod + 1)]
-            allvs = [pow(v, i) for i in range(degmod + 1)]
-
-            if 'center' in aGauss:
-                center = aGauss['center']
-            else:
-                center = None
-            gaussk = _gauss(shape=kernelshape, center=center, sx=aGauss['sx'],
-                            sy=aGauss['sy'])
-
+            n = aGauss['modPolyDeg'] + 1
+            allus = [pow(u, i) for i in range(n)]
+            allvs = [pow(v, i) for i in range(n)]
+            gaussk = _gauss(shape=kernelshape, center=aGauss['center'],
+                            sx=aGauss['sx'], sy=aGauss['sy'])
             ind = 0
             for i, aU in enumerate(allus):
-                for aV in allvs[:degmod + 1 - i]:
+                for aV in allvs[:n - i]:
                     kernel += coeffs[ind] * aU * aV
                     ind += 1
             kernel *= gaussk
@@ -159,20 +134,16 @@ def _coeffstokernel(coeffs, gausslist, kernelshape=(10, 10)):
 def _coeffstobackground(shape, coeffs, bkgdeg=None):
     if bkgdeg is None:
         bkgdeg = int(-1.5 + 0.5 * np.sqrt(9 + 8 * (len(coeffs) - 1)))
-
     h, w = shape
     y, x = np.mgrid[:h, :w]
     allxs = [pow(x, i) for i in range(bkgdeg + 1)]
     allys = [pow(y, i) for i in range(bkgdeg + 1)]
-
     mybkg = np.zeros(shape)
-
     ind = 0
     for i, anX in enumerate(allxs):
         for aY in allys[:bkgdeg + 1 - i]:
             mybkg += coeffs[ind] * anX * aY
             ind += 1
-
     return mybkg
 
 
@@ -253,11 +224,8 @@ def optimalkernelandbkg(image, refimage, gausslist=None,
     else:
         nkcoeffs = 0
         for aGauss in gausslist:
-            if 'modPolyDeg' in aGauss:
-                degmod = aGauss['modPolyDeg']
-            else:
-                degmod = 2
-            nkcoeffs += (degmod + 1) * (degmod + 2) // 2
+            n = aGauss['modPolyDeg'] + 1
+            nkcoeffs += n * (n + 1) // 2
 
     kernel = _coeffstokernel(coeffs[:nkcoeffs], gausslist, kernelshape)
     background = _coeffstobackground(image.shape, coeffs[nkcoeffs:])
@@ -357,3 +325,4 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
 
 if __name__ == '__main__':
     print(__doc__)
+    print("\nVersion: {}".format(__version__))
