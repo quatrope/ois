@@ -328,7 +328,10 @@ def convolve_var():
     import varconv
 
     print("You are using this from a python module.")
-    result = varconv.cconvolve_var()
+    vecin = np.array([1., 3., 7.5])
+    vecout = np.ones(3)
+    result = varconv.cconvolve_var(vecin, vecout)
+    print("After C, the last element is %g" % (vecin[-1]))
     print("Exiting cleanly...")
     return result
 
