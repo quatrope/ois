@@ -328,10 +328,10 @@ def convolve_var():
     import varconv
 
     print("You are using this from a python module.")
-    vecin = np.array([1., 3., 7.5])
-    vecout = np.ones(3)
-    result = varconv.cconvolve_var(vecin, vecout)
-    print("After C, the last element is %g" % (vecin[-1]))
+    image = np.random.random((10, 10))
+    kernel = np.zeros((3, 3))
+    result = varconv.cconvolve_var(image, kernel)
+    # print("After C, the last element is %g" % (vecin[-1]))
     print("Exiting cleanly...")
     return result
 
