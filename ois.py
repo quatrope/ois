@@ -324,6 +324,15 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
     return subtract_collage
 
 
+def convolve_var():
+    import varconv
+
+    print("You are using this from a python module.")
+    result = varconv.cconvolve_var()
+    print("Exiting cleanly...")
+    return result
+
+
 if __name__ == '__main__':
     print(__doc__)
     print("\nVersion: {}".format(__version__))

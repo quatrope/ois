@@ -1,4 +1,6 @@
-from setuptools import setup
+from setuptools import setup, Extension
+
+varconv = Extension('varconv', sources=['src/varconv.c'])
 
 setup(name='ois',
       version='0.1a3dev',
@@ -7,6 +9,7 @@ setup(name='ois',
       author_email='martinberoiz@gmail.com',
       url='https://github.com/toros-astro/ois',
       py_modules=['ois', ],
+      ext_modules=[varconv],
       install_requires=["numpy>=1.6",
                         "scipy>=0.16"],
       test_suite='tests',
