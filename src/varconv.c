@@ -22,22 +22,38 @@ varconv_cconvolve_var(PyObject *self, PyObject *args)
     double* image = (double*)np_image->data;
     double* kernel = (double*)np_kernel->data;
 
-    double* CRKn = (double*)malloc(n * m * sizeof(*CRKn));
+    double* Conv = (double*)malloc(n * m * sizeof(*CRKn));
 
-    //convolution
-    for (int i = 0; i < n; i++){
-        for(int j = 0; j < m; j++){
-            for (int mm = 0; mm < km; mm++){
-                for(int nn = 0; nn < kn; nn++){
-                    int ii = i + (mm - w); //index of convolution//
-                    int jj = j + (nn - w); //index of convolution//
-                    if (ii >= 0 && ii < n && jj >= 0 && jj < n) {
-                        CRKn[i + j * n] += image[ii + jj * n] * kernel[mm + nn * kn];
-                    }
-                }
-            }
-        }
-    }
+    kernel = calloc(kernel_height * kernel_width, sizeof(*kernel));
+    Conv = calloc(n * m, sizeof(*Conv));
+
+    for (int conv_row = 0; conv_row < n; ++conv_row) {
+        for (int conv_col = 0; conv_col < m; ++conv_col) {
+            conv_index = conv_row * m + conv_col
+
+            for (int p = 0; p < kernel_height; ++p) {
+                for (int q = 0; q < kernel_width; ++q) {
+                    kpq = p * kn + q;
+                    if (kpq > 0) kernel[kpq - 1] = 0.0;
+                    kernel[kpq] = 1.0;
+
+                    for (int exp_x = 0; exp_x < deg_x; ++exp_x) {
+                        p_pow = pow(p, exp_y);
+                        for (int exp_y = 0; exp_y < deg_y; ++exp_y) {
+                            q_pow = pow(q, exp_x);
+                            img_index = conv_index - p * m - q;
+                            // make sure img_index is in bounds of image
+                            Conv[conv_index] += image[img_index] * p_pow * q_pow
+                        } // exp_y
+                    } // exp_x
+
+                } //q
+            } // p
+
+        } // conv_col
+    } // conv_row
+
+
 
     npy_intp dims[2] = {n, m};
     PyObject* cconv = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, CRKn);
