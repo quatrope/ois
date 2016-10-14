@@ -61,30 +61,26 @@ varconv_cconvolve_var(PyObject *self, PyObject *args)
 
     //Create matrices M and vector b
     int total_dof = kernel_size * poly_degree;
-    double* Mb = malloc(total_dof * (total_dof + 1) * sizeof(*Mb));
-    //double* b = malloc(total_dof * sizeof(*b));
+    double* M = malloc(total_dof * total_dof * sizeof(*M));
+    double* b = malloc(total_dof * sizeof(*b));
     for (int i = 0; i < total_dof; i++) {
         double* C1 = Conv + i * img_size;
         for (int j = i; j < total_dof; j++) {
             double* C2 = Conv + j * img_size;
-            Mb[i * total_dof + j] = multiply_and_sum(img_size, C1, C2);
-            Mb[j * total_dof + i] = Mb[i*total_dof + j];
+            M[i * total_dof + j] = multiply_and_sum(img_size, C1, C2);
+            M[j * total_dof + i] = M[i*total_dof + j];
         }
-        Mb[total_dof * total_dof + i] = multiply_and_sum(img_size, image, C1);
+        b[total_dof * total_dof + i] = multiply_and_sum(img_size, image, C1);
     }
 
     free(Conv);
 
-    npy_intp dims[2] = {total_dof + 1, total_dof};
-    PyObject* pyM = PyArray_SimpleNewFromData(2, dims, NPY_DOUBLE, Mb);
+    npy_intp Mdims[2] = {total_dof, total_dof};
+    npy_intp bdims = total_dof;
+    PyObject* pyM = PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, M);
+    PyObject* pyb = PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, b);
 
-    return pyM;
-}
-
-
-PyArrayObject *pymatrix(PyObject *objin)  {
-    return (PyArrayObject *) PyArray_ContiguousFromObject(objin,
-        NPY_DOUBLE, 2,2);
+    return Py_BuildValue("OO", pyM, pyb);
 }
 
 static PyMethodDef VarConvMethods[] = {

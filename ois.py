@@ -330,11 +330,12 @@ def convolve_var():
     print("You are using this from a python module.")
     image = np.random.random((10, 10))
     refimage = np.random.random((10, 10))
-    result = varconv.cconvolve_var(image, refimage, 3, 3, 2)
+    M, b = varconv.cconvolve_var(image, refimage, 3, 3, 2)
     # print("After C, the last element is %g" % (vecin[-1]))
-    print(result)
+    print("Shape of M", M.shape)
+    print("Shape of b", b.shape)
     print("Exiting cleanly...")
-    return result
+    return
 
 
 if __name__ == '__main__':
