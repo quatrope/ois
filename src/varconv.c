@@ -6,7 +6,7 @@
 double multiply_and_sum(int nsize, double* C1, double* C2);
 
 static PyObject *
-varconv_cconvolve_var(PyObject *self, PyObject *args)
+varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
     PyArrayObject *np_image, *np_refimage;
     int kernel_width, kernel_height;
@@ -84,8 +84,8 @@ varconv_cconvolve_var(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef VarConvMethods[] = {
-    {"cconvolve_var", varconv_cconvolve_var, METH_VARARGS,
-     "Do a 2D convolution with a modulated kernel"},
+    {"gen_matrix_system", varconv_gen_matrix_system, METH_VARARGS,
+     "Generate the matrix system to find best convolution parameters."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

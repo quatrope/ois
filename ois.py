@@ -324,17 +324,17 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
     return subtract_collage
 
 
-def convolve_var():
+def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
     import varconv
 
-    print("You are using this from a python module.")
     image = np.random.random((10, 10))
     refimage = np.random.random((10, 10))
-    M, b = varconv.cconvolve_var(image, refimage, 3, 3, 2)
-    # print("After C, the last element is %g" % (vecin[-1]))
-    print("Shape of M", M.shape)
+    m, b = varconv.gen_matrix_system(image, refimage,
+                                     kernel_side, kernel_side, poly_degree)
+    # coeffs = np.linalg.solve(m, b)
+    print("Shape of M", m.shape)
     print("Shape of b", b.shape)
-    print("Exiting cleanly...")
+    # print("Coeffs: ", coeffs)
     return
 
 
