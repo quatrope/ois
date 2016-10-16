@@ -2,6 +2,7 @@ import unittest
 import ois
 import numpy as np
 import os
+import varconv
 
 
 class TestSubtract(unittest.TestCase):
@@ -204,6 +205,19 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+
+
+class TestVarConv(unittest.TestCase):
+
+    def test_gen_matrix_system(self):
+        image = np.random.random((10, 10))
+        refimage = image.copy()
+        kernel_side = 3
+        poly_degree = 2
+        m, b = varconv.gen_matrix_system(image, refimage,
+                                         kernel_side, kernel_side, poly_degree)
+        coeffs = np.linalg.solve(m, b)
+        self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
 
 
 if __name__ == "__main__":
