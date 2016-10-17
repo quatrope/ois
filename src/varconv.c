@@ -13,9 +13,9 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     int deg; // The degree of the varying polynomial
 
     if (!PyArg_ParseTuple(args, "O!O!ii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &kernel_side, &deg))  return NULL;
-    if (NULL == np_image)  return NULL;
-    if (NULL == np_refimage)  return NULL;
+            &PyArray_Type, &np_refimage, &kernel_side, &deg)) return NULL;
+    if (NULL == np_image) return NULL;
+    if (NULL == np_refimage) return NULL;
 
     int khs = kernel_side / 2; // kernel half side
 
@@ -47,8 +47,8 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
                             int img_row = conv_row - (p - khs); // khs is kernel half side
                             int img_col = conv_col - (q - khs);
                             int img_index = img_row * m + img_col;
-                            double x_pow = pow(img_col, exp_x);
-                            double y_pow = pow(img_row, exp_y);
+                            double x_pow = pow(conv_col, exp_x);
+                            double y_pow = pow(conv_row, exp_y);
                             // make sure img_index is in bounds of refimage
                             if (img_row >= 0 && img_col >=0 && img_row < n && img_col < m) {
                                 Conv_pqkl[conv_index] = refimage[img_index] * x_pow * y_pow;
@@ -81,10 +81,10 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 
     npy_intp Mdims[2] = {total_dof, total_dof};
     npy_intp bdims = total_dof;
-    npy_intp convdims[] = {kernel_size, poly_degree, img_size};
+    npy_intp convdims[3] = {kernel_size, poly_degree, img_size};
     PyObject* pyM = PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, M);
     PyObject* pyb = PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, b);
-    PyObject* pyConv = PyArray_SimpleNewFromData(3, &convdims, NPY_DOUBLE, Conv);
+    PyObject* pyConv = PyArray_SimpleNewFromData(3, convdims, NPY_DOUBLE, Conv);
 
     return Py_BuildValue("OOO", pyM, pyb, pyConv);
 }
@@ -104,10 +104,13 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
     int m = np_image->dimensions[1];
     int k_side = np_kernelcoeffs->dimensions[0];
     int k_poly_dof = np_kernelcoeffs->dimensions[2];
+    int khs = k_side / 2;
 
     double* image = (double*)np_image->data;
     double* k_coeffs = (double*)np_kernelcoeffs->data;
     double k_pixel;
+
+    double* Conv = (double*)malloc(n * m * sizeof(*Conv));
 
     for (int conv_row = 0; conv_row < n; ++conv_row) {
         for (int conv_col = 0; conv_col < m; ++conv_col) {
@@ -134,11 +137,18 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
                             }
                         }
 
-                        Conv_pqkl[conv_index] += image[img_index] * k_pixel
+                        Conv[conv_index] += image[img_index] * k_pixel;
                     }
+                }
+            }
 
         } // conv_col
     } // conv_row
+
+    npy_intp Convdims[2] = {n, m};
+    PyObject* pyConv = PyArray_SimpleNewFromData(2, Convdims, NPY_DOUBLE, Conv);
+
+    return Py_BuildValue("O", pyConv);
 
 }
 
