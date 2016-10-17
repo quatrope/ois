@@ -155,6 +155,8 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
 static PyMethodDef VarConvMethods[] = {
     {"gen_matrix_system", varconv_gen_matrix_system, METH_VARARGS,
      "Generate the matrix system to find best convolution parameters."},
+     {"convolve2d_adaptive", varconv_convolve2d_adaptive, METH_VARARGS,
+     "Convolves image with an adaptive kernel."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
