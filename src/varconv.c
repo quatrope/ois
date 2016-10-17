@@ -96,8 +96,8 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
 
     if (!PyArg_ParseTuple(args, "O!O!i", &PyArray_Type, &np_image,
             &PyArray_Type, &np_kernelcoeffs, &deg))  return NULL;
-    if (NULL == np_image)  return NULL;
-    if (NULL == np_kernelcoeffs)  return NULL;
+    if (NULL == np_image) return NULL;
+    if (NULL == np_kernelcoeffs) return NULL;
 
     int n = np_image->dimensions[0];
     int m = np_image->dimensions[1];
@@ -144,10 +144,21 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
         } // conv_col
     } // conv_row
 
+    printf("Inside C:\n");
+    for (int i = 0; i < n; ++i) {
+        printf("[");
+        for (int j = 0; j < m; j++)
+        {
+            printf("%g, ", i, j, Conv[i*m + j]);
+        }
+        printf("]\n");
+    }
+
     npy_intp Convdims[2] = {n, m};
     PyObject* pyConv = PyArray_SimpleNewFromData(2, Convdims, NPY_DOUBLE, Conv);
 
     return Py_BuildValue("O", pyConv);
+    //return pyConv;
 
 }
 
