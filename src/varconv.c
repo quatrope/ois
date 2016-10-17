@@ -10,6 +10,7 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
     PyArrayObject *np_image, *np_refimage;
     int kernel_side;
+    int khs = kernel_side / 2; // kernel half side
     int deg; // The degree of the varying polynomial
 
     if (!PyArg_ParseTuple(args, "O!O!ii", &PyArray_Type, &np_image,
@@ -42,9 +43,11 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
                     for (int conv_row = 0; conv_row < n; ++conv_row) {
                         for (int conv_col = 0; conv_col < m; ++conv_col) {
                             int conv_index = conv_row * m + conv_col;
-                            int img_index = conv_index - p * m - q;
+                            int img_row = conv_row - (p - khs); // khs is kernel half side
+                            int img_col = conv_col - (q - khs);
+                            int img_index = img_row * m + img_col;
                             // make sure img_index is in bounds of refimage
-                            if (img_index >= 0 && img_index < img_size) {
+                            if (img_row >= 0 && img_col >=0 && img_row < n && img_col < m) {
                                 Conv_pqkl[conv_index] = refimage[img_index] * p_pow * q_pow;
                             }
                         } // conv_col

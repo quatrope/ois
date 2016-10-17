@@ -214,11 +214,11 @@ class TestVarConv(unittest.TestCase):
         self.image = np.random.random((self.n, self.m))
         self.refimage = self.image.copy()
         self.kernel_side = 3
+
+    def test_gen_matrix_system_sizes(self):
         self.deg = 2
         self.mm, self.b, self.c = varconv.gen_matrix_system(
             self.image, self.refimage, self.kernel_side, self.deg)
-
-    def test_gen_matrix_system_sizes(self):
         m_dof = ((self.deg + 1) * (self.deg + 2) / 2
                  * self.kernel_side * self.kernel_side)
         ks = self.kernel_side * self.kernel_side
@@ -229,8 +229,23 @@ class TestVarConv(unittest.TestCase):
         self.assertEqual(self.c.shape, (ks, pol_dof, self.n * self.m))
 
     def test_gen_matrix_system(self):
+        self.deg = 2
+        self.mm, self.b, self.c = varconv.gen_matrix_system(
+            self.image, self.refimage, self.kernel_side, self.deg)
         coeffs = np.linalg.solve(self.mm, self.b)
         self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
+
+    def test_gen_matrix_system_constantkernel(self):
+        self.deg = 0
+        self.mm, self.b, self.c = varconv.gen_matrix_system(
+            self.image, self.refimage, self.kernel_side, self.deg)
+        coeffs = np.linalg.solve(self.mm, self.b)
+        ks = self.kernel_side
+        kc = self.kernel_side // 2
+        result_kernel = coeffs.reshape((ks, ks))
+        best_kernel = np.zeros((self.kernel_side, self.kernel_side))
+        best_kernel[kc, kc] = 1.0
+        self.assertLess(np.linalg.norm(result_kernel - best_kernel), 1E-10)
 
 
 if __name__ == "__main__":
