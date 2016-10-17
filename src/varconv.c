@@ -71,14 +71,16 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
         b[i] = multiply_and_sum(img_size, image, C1);
     }
 
-    free(Conv);
+    //free(Conv);
 
     npy_intp Mdims[2] = {total_dof, total_dof};
     npy_intp bdims = total_dof;
+    npy_intp convdims[] = {kernel_size, poly_degree, img_size};
     PyObject* pyM = PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, M);
     PyObject* pyb = PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, b);
+    PyObject* pyConv = PyArray_SimpleNewFromData(3, &convdims, NPY_DOUBLE, Conv);
 
-    return Py_BuildValue("OO", pyM, pyb);
+    return Py_BuildValue("OOO", pyM, pyb, pyConv);
 }
 
 static PyMethodDef VarConvMethods[] = {

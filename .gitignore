@@ -1,2 +1,12 @@
 *~
 *.pyc
+.DS_STORE
+build
+ois.egg-info
+.coverage
+.eggs
+.ipynb_checkpoints/
+*.ipynb
+*.sublime-project
+*.sublime-workspace
+*.so

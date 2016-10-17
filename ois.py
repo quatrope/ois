@@ -329,10 +329,12 @@ def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
 
     image = np.random.random((10, 10))
     refimage = np.random.random((10, 10))
-    m, b = varconv.gen_matrix_system(image, refimage, kernel_side, poly_degree)
+    m, b, conv = varconv.gen_matrix_system(image, refimage, kernel_side,
+                                           poly_degree)
     # coeffs = np.linalg.solve(m, b)
     print("Shape of M", m.shape)
     print("Shape of b", b.shape)
+    print("Shape of conv", conv.shape)
     # print("Coeffs: ", coeffs)
     return
 
