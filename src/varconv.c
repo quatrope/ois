@@ -9,11 +9,11 @@ static PyObject *
 varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
     PyArrayObject *np_image, *np_refimage;
-    int kernel_width, kernel_height;
+    int kernel_side;
     int deg; // The degree of the varying polynomial
 
-    if (!PyArg_ParseTuple(args, "O!O!iii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &kernel_width, &kernel_height, &deg))  return NULL;
+    if (!PyArg_ParseTuple(args, "O!O!ii", &PyArray_Type, &np_image,
+            &PyArray_Type, &np_refimage, &kernel_side, &deg))  return NULL;
     if (NULL == np_image)  return NULL;
     if (NULL == np_refimage)  return NULL;
 
@@ -23,24 +23,22 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     double* image = (double*)np_image->data;
     double* refimage = (double*)np_refimage->data;
 
-    double* Conv = (double*)malloc(n * m * sizeof(*Conv));
-
-    int kernel_size = kernel_height * kernel_width;
+    int kernel_size = kernel_side * kernel_side;
     int img_size = n * m;
     int poly_degree = (deg + 1) * (deg + 2) / 2;
-    Conv = calloc(img_size * kernel_size * poly_degree, sizeof(*Conv));
+    double* Conv = calloc(img_size * kernel_size * poly_degree, sizeof(*Conv));
 
-    for (int p = 0; p < kernel_height; ++p) {
-        for (int q = 0; q < kernel_width; ++q) {
-            double* Conv_pq = Conv + p * kernel_width + q;
+    for (int p = 0; p < kernel_side; p++) {
+        for (int q = 0; q < kernel_side; q++) {
+            double* Conv_pq = Conv + (p * kernel_side + q) * poly_degree * img_size;
 
             int exp_index = 0;
             for (int exp_x = 0; exp_x <= deg; exp_x++) {
                 double p_pow = pow(p, exp_x);
                 for (int exp_y = 0; exp_y <= deg - exp_x; exp_y++) {
                     double q_pow = pow(q, exp_y);
-                    double* Conv_pqkl = Conv_pq + exp_index;
-
+                    double* Conv_pqkl = Conv_pq + exp_index * img_size;
+                    
                     for (int conv_row = 0; conv_row < n; ++conv_row) {
                         for (int conv_col = 0; conv_col < m; ++conv_col) {
                             int conv_index = conv_row * m + conv_col;
@@ -51,11 +49,11 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
                             }
                         } // conv_col
                     } // conv_row
-
-                    exp_index++;                    
+                    
+                    exp_index++;
                 } // exp_y
             } // exp_x
-
+            
         } //q
     } // p
 
@@ -68,9 +66,9 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
         for (int j = i; j < total_dof; j++) {
             double* C2 = Conv + j * img_size;
             M[i * total_dof + j] = multiply_and_sum(img_size, C1, C2);
-            M[j * total_dof + i] = M[i*total_dof + j];
+            M[j * total_dof + i] = M[i * total_dof + j];
         }
-        b[total_dof * total_dof + i] = multiply_and_sum(img_size, image, C1);
+        b[i] = multiply_and_sum(img_size, image, C1);
     }
 
     free(Conv);

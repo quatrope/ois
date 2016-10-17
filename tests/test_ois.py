@@ -209,13 +209,24 @@ class TestSubtract(unittest.TestCase):
 
 class TestVarConv(unittest.TestCase):
 
+    def setUp(self):
+        self.n, self.m = 10, 10
+        self.image = np.random.random((self.n, self.m))
+        self.refimage = self.image.copy()
+        self.kernel_side = 3
+        self.poly_degree = 2
+
+    def test_gen_matrix_system_sizes(self):
+        m_dof = ((self.poly_degree + 1) * (self.poly_degree + 2) / 2
+                 * self.kernel_side * self.kernel_side)
+        m, b = varconv.gen_matrix_system(self.image, self.refimage,
+                                         self.kernel_side, self.poly_degree)
+        self.assertEqual(m.shape, (m_dof, m_dof))
+        self.assertEqual(b.shape, (m_dof,))
+
     def test_gen_matrix_system(self):
-        image = np.random.random((10, 10))
-        refimage = image.copy()
-        kernel_side = 3
-        poly_degree = 2
-        m, b = varconv.gen_matrix_system(image, refimage,
-                                         kernel_side, kernel_side, poly_degree)
+        m, b = varconv.gen_matrix_system(self.image, self.refimage,
+                                         self.kernel_side, self.poly_degree)
         coeffs = np.linalg.solve(m, b)
         self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
 
