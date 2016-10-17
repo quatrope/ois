@@ -36,9 +36,9 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 
             int exp_index = 0;
             for (int exp_x = 0; exp_x <= deg; exp_x++) {
-                double p_pow = pow(p, exp_x);
+                double p_pow = pow(p - khs, exp_x);
                 for (int exp_y = 0; exp_y <= deg - exp_x; exp_y++) {
-                    double q_pow = pow(q, exp_y);
+                    double q_pow = pow(q - khs, exp_y);
                     double* Conv_pqkl = Conv_pq + exp_index * img_size;
                     
                     for (int conv_row = 0; conv_row < n; ++conv_row) {
@@ -49,7 +49,7 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
                             int img_index = img_row * m + img_col;
                             // make sure img_index is in bounds of refimage
                             if (img_row >= 0 && img_col >=0 && img_row < n && img_col < m) {
-                                Conv_pqkl[conv_index] = refimage[img_index]; //* p_pow * q_pow;
+                                Conv_pqkl[conv_index] = refimage[img_index] * p_pow * q_pow;
                             }
                         } // conv_col
                     } // conv_row
