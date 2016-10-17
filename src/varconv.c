@@ -89,6 +89,59 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     return Py_BuildValue("OOO", pyM, pyb, pyConv);
 }
 
+static PyObject *
+varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
+    PyArrayObject *np_image, *np_kernelcoeffs;
+    int kernel_side;
+    int deg; // The degree of the varying polynomial
+
+    if (!PyArg_ParseTuple(args, "O!O!i", &PyArray_Type, &np_image,
+            &PyArray_Type, &np_kernelcoeffs, &deg))  return NULL;
+    if (NULL == np_image)  return NULL;
+    if (NULL == np_kernelcoeffs)  return NULL;
+
+    int n = np_image->dimensions[0];
+    int m = np_image->dimensions[1];
+    int k_side = np_kernelcoeffs->dimensions[0];
+    int k_poly_dof = np_kernelcoeffs->dimensions[2];
+
+    double* image = (double*)np_image->data;
+    double* k_coeffs = (double*)np_kernelcoeffs->data;
+    double k_pixel;
+
+    for (int conv_row = 0; conv_row < n; ++conv_row) {
+        for (int conv_col = 0; conv_col < m; ++conv_col) {
+            int conv_index = conv_row * m + conv_col;
+
+            for (int p = 0; p < kernel_side; p++) {
+                for (int q = 0; q < kernel_side; q++) {
+                    int img_row = conv_row - (p - khs); // khs is kernel half side
+                    int img_col = conv_col - (q - khs);
+                    int img_index = img_row * m + img_col;
+
+                    // do only if img_index is in bounds of image
+                    if (img_row >= 0 && img_col >=0 && img_row < n && img_col < m) {
+
+                        // reconstruct the (p, q) pixel of kernel
+                        k_pixel = 0.0;
+                        // advance k_coeffs pointer to the p, q part
+                        double* k_coeffs_pq = k_coeffs + (p * k_side + q) * k_poly_dof;
+                        int exp_index = 0;
+                        for (int exp_x = 0; exp_x <= deg; exp_x++) {
+                            for (int exp_y = 0; exp_y <= deg - exp_x; exp_y++) {
+                                k_pixel += k_coeffs_pq[exp_index] * pow(img_row, exp_y) * pow(img_col, exp_x);
+                                exp_index++;
+                            }
+                        }
+
+                        Conv_pqkl[conv_index] += image[img_index] * k_pixel
+                    }
+
+        } // conv_col
+    } // conv_row
+
+}
+
 static PyMethodDef VarConvMethods[] = {
     {"gen_matrix_system", varconv_gen_matrix_system, METH_VARARGS,
      "Generate the matrix system to find best convolution parameters."},
