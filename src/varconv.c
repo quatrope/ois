@@ -109,7 +109,7 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
     double* k_coeffs = (double*)np_kernelcoeffs->data;
     double k_pixel;
 
-    double* Conv = (double*)malloc(n * m * sizeof(*Conv));
+    double* Conv = (double*)calloc(n * m, sizeof(*Conv));
 
     for (int conv_row = 0; conv_row < n; ++conv_row) {
         for (int conv_col = 0; conv_col < m; ++conv_col) {
@@ -144,15 +144,12 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
         } // conv_col
     } // conv_row
 
-    printf("Inside C:\n");
-    for (int i = 0; i < n; ++i) {
-        printf("[");
-        for (int j = 0; j < m; j++)
-        {
-            printf("%g, ", i, j, Conv[i*m + j]);
-        }
-        printf("]\n");
-    }
+    //printf("Inside C:\n");
+    //for (int i = 0; i < n; ++i) {
+    //    printf("[");
+    //    for (int j = 0; j < m; j++) printf("%g, ", Conv[i * m + j]);
+    //    printf("]\n");
+    //}
 
     npy_intp Convdims[2] = {n, m};
     PyObject* pyConv = PyArray_SimpleNewFromData(2, Convdims, NPY_DOUBLE, Conv);

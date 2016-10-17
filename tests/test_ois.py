@@ -248,12 +248,13 @@ class TestVarConv(unittest.TestCase):
         self.assertLess(np.linalg.norm(result_kernel - best_kernel), 1E-10)
 
     def test_convolve2d_adaptive_idkernel(self):
-        kernel = np.zeros((3, 3, 1))
+        kernel = np.zeros((3, 3, 1), dtype="float64")
         kernel[1, 1, 0] = 1.0
         # image = np.random.random((10, 10))
-        image = np.arange(100, dtype="f8").reshape((10, 10))
+        image = np.arange(100, dtype="float64").reshape((10, 10))
         conv = varconv.convolve2d_adaptive(image, kernel, 0)
-        print(conv)
+        # print(image)
+        # print(conv)
         self.assertEqual(conv.shape, image.shape)
         self.assertLess(np.linalg.norm(image - conv), 1E-10)
 
