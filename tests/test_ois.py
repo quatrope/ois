@@ -215,6 +215,8 @@ class TestVarConv(unittest.TestCase):
         self.refimage = self.image.copy()
         self.kernel_side = 3
         self.deg = 2
+        self.mm, self.b, self.c = varconv.gen_matrix_system(
+            self.image, self.refimage, self.kernel_side, self.deg)
 
     def test_gen_matrix_system_sizes(self):
         m_dof = ((self.deg + 1) * (self.deg + 2) / 2
@@ -222,16 +224,12 @@ class TestVarConv(unittest.TestCase):
         ks = self.kernel_side * self.kernel_side
         pol_dof = (self.deg + 1) * (self.deg + 2) / 2
 
-        m, b, c = varconv.gen_matrix_system(self.image, self.refimage,
-                                            self.kernel_side, self.deg)
-        self.assertEqual(m.shape, (m_dof, m_dof))
-        self.assertEqual(b.shape, (m_dof,))
-        self.assertEqual(c.shape, (ks, pol_dof, self.n * self.m))
+        self.assertEqual(self.mm.shape, (m_dof, m_dof))
+        self.assertEqual(self.b.shape, (m_dof,))
+        self.assertEqual(self.c.shape, (ks, pol_dof, self.n * self.m))
 
     def test_gen_matrix_system(self):
-        m, b, c = varconv.gen_matrix_system(self.image, self.refimage,
-                                            self.kernel_side, self.deg)
-        coeffs = np.linalg.solve(m, b)
+        coeffs = np.linalg.solve(self.mm, self.b)
         self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
 
 
