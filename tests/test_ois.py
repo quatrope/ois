@@ -228,12 +228,12 @@ class TestVarConv(unittest.TestCase):
         self.assertEqual(self.b.shape, (m_dof,))
         self.assertEqual(self.c.shape, (ks, pol_dof, self.n * self.m))
 
-    def test_gen_matrix_system(self):
-        self.deg = 2
-        self.mm, self.b, self.c = varconv.gen_matrix_system(
-            self.image, self.refimage, self.kernel_side, self.deg)
-        coeffs = np.linalg.solve(self.mm, self.b)
-        self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
+    # def test_gen_matrix_system(self):
+    #     self.deg = 2
+    #     self.mm, self.b, self.c = varconv.gen_matrix_system(
+    #         self.image, self.refimage, self.kernel_side, self.deg)
+    #     coeffs = np.linalg.solve(self.mm, self.b)
+    #     self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
 
     def test_gen_matrix_system_constantkernel(self):
         self.deg = 0
@@ -247,6 +247,14 @@ class TestVarConv(unittest.TestCase):
         best_kernel[kc, kc] = 1.0
         self.assertLess(np.linalg.norm(result_kernel - best_kernel), 1E-10)
 
+    def test_convolve2d_adaptive_idkernel(self):
+        kernel = np.zeros((3, 3))
+        kernel[1, 1] = 1.0
+        kernel = kernel.reshape((3, 3, 1))
+        image = np.random.random((10, 10))
+        conv = varconv.convolve2d_adaptive(image, kernel, 0)
+        self.assertEqual(conv.shape, image.shape)
+        self.assertLess(np.linalg.norm(image - conv), 1E-10)
 
 if __name__ == "__main__":
     unittest.main()

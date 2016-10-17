@@ -9,15 +9,15 @@ static PyObject *
 varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
     PyArrayObject *np_image, *np_refimage;
-    int kernel_side;
+    int k_side;
     int deg; // The degree of the varying polynomial
 
     if (!PyArg_ParseTuple(args, "O!O!ii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &kernel_side, &deg)) return NULL;
+            &PyArray_Type, &np_refimage, &k_side, &deg)) return NULL;
     if (NULL == np_image) return NULL;
     if (NULL == np_refimage) return NULL;
 
-    int khs = kernel_side / 2; // kernel half side
+    int khs = k_side / 2; // kernel half side
 
     int n = np_image->dimensions[0];
     int m = np_image->dimensions[1];
@@ -25,14 +25,14 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     double* image = (double*)np_image->data;
     double* refimage = (double*)np_refimage->data;
 
-    int kernel_size = kernel_side * kernel_side;
+    int kernel_size = k_side * k_side;
     int img_size = n * m;
     int poly_degree = (deg + 1) * (deg + 2) / 2;
     double* Conv = calloc(img_size * kernel_size * poly_degree, sizeof(*Conv));
 
-    for (int p = 0; p < kernel_side; p++) {
-        for (int q = 0; q < kernel_side; q++) {
-            double* Conv_pq = Conv + (p * kernel_side + q) * poly_degree * img_size;
+    for (int p = 0; p < k_side; p++) {
+        for (int q = 0; q < k_side; q++) {
+            double* Conv_pq = Conv + (p * k_side + q) * poly_degree * img_size;
 
             int exp_index = 0;
             for (int exp_x = 0; exp_x <= deg; exp_x++) {
@@ -92,7 +92,6 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 static PyObject *
 varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
     PyArrayObject *np_image, *np_kernelcoeffs;
-    int kernel_side;
     int deg; // The degree of the varying polynomial
 
     if (!PyArg_ParseTuple(args, "O!O!i", &PyArray_Type, &np_image,
@@ -116,8 +115,8 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
         for (int conv_col = 0; conv_col < m; ++conv_col) {
             int conv_index = conv_row * m + conv_col;
 
-            for (int p = 0; p < kernel_side; p++) {
-                for (int q = 0; q < kernel_side; q++) {
+            for (int p = 0; p < k_side; p++) {
+                for (int q = 0; q < k_side; q++) {
                     int img_row = conv_row - (p - khs); // khs is kernel half side
                     int img_col = conv_col - (q - khs);
                     int img_index = img_row * m + img_col;

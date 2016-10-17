@@ -1,7 +1,8 @@
 from setuptools import setup, Extension
 import numpy
 
-varconv = Extension('varconv', sources=['src/varconv.c'])
+varconv = Extension('varconv', sources=['src/varconv.c'],
+                    extra_compile_args=["-std=c99"])
 
 setup(name='ois',
       version='0.2a1dev',
