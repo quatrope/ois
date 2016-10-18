@@ -131,7 +131,7 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
                         int exp_index = 0;
                         for (int exp_x = 0; exp_x <= deg; exp_x++) {
                             for (int exp_y = 0; exp_y <= deg - exp_x; exp_y++) {
-                                k_pixel += k_coeffs_pq[exp_index] * pow(img_row, exp_y) * pow(img_col, exp_x);
+                                k_pixel += k_coeffs_pq[exp_index] * pow(conv_row, exp_y) * pow(conv_col, exp_x);
                                 exp_index++;
                             }
                         }
@@ -143,13 +143,6 @@ varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
 
         } // conv_col
     } // conv_row
-
-    //printf("Inside C:\n");
-    //for (int i = 0; i < n; ++i) {
-    //    printf("[");
-    //    for (int j = 0; j < m; j++) printf("%g, ", Conv[i * m + j]);
-    //    printf("]\n");
-    //}
 
     npy_intp Convdims[2] = {n, m};
     PyObject* pyConv = PyArray_SimpleNewFromData(2, Convdims, NPY_DOUBLE, Conv);

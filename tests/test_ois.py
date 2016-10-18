@@ -210,53 +210,61 @@ class TestSubtract(unittest.TestCase):
 class TestVarConv(unittest.TestCase):
 
     def setUp(self):
-        self.n, self.m = 10, 10
-        self.image = np.random.random((self.n, self.m))
-        self.refimage = self.image.copy()
-        self.kernel_side = 3
+        pass
 
     def test_gen_matrix_system_sizes(self):
-        self.deg = 2
-        self.mm, self.b, self.c = varconv.gen_matrix_system(
-            self.image, self.refimage, self.kernel_side, self.deg)
-        m_dof = ((self.deg + 1) * (self.deg + 2) / 2
-                 * self.kernel_side * self.kernel_side)
-        ks = self.kernel_side * self.kernel_side
-        pol_dof = (self.deg + 1) * (self.deg + 2) / 2
-
-        self.assertEqual(self.mm.shape, (m_dof, m_dof))
-        self.assertEqual(self.b.shape, (m_dof,))
-        self.assertEqual(self.c.shape, (ks, pol_dof, self.n * self.m))
-
-    # def test_gen_matrix_system(self):
-    #     self.deg = 2
-    #     self.mm, self.b, self.c = varconv.gen_matrix_system(
-    #         self.image, self.refimage, self.kernel_side, self.deg)
-    #     coeffs = np.linalg.solve(self.mm, self.b)
-    #     self.assertLess(abs(coeffs.sum() - 1.0), 1E-5)
+        deg = 2
+        k_side = 3
+        n, m = 10, 10
+        image = np.random.random((n, m))
+        refimage = image.copy()
+        mm, b, c = varconv.gen_matrix_system(image, refimage, k_side, deg)
+        pol_dof = (deg + 1) * (deg + 2) / 2
+        m_dof = (pol_dof * k_side * k_side)
+        k_size = k_side * k_side
+        self.assertEqual(mm.shape, (m_dof, m_dof))
+        self.assertEqual(b.shape, (m_dof,))
+        self.assertEqual(c.shape, (k_size, pol_dof, n * m))
 
     def test_gen_matrix_system_constantkernel(self):
-        self.deg = 0
-        self.mm, self.b, self.c = varconv.gen_matrix_system(
-            self.image, self.refimage, self.kernel_side, self.deg)
-        coeffs = np.linalg.solve(self.mm, self.b)
-        ks = self.kernel_side
-        kc = self.kernel_side // 2
-        result_kernel = coeffs.reshape((ks, ks))
-        best_kernel = np.zeros((self.kernel_side, self.kernel_side))
+        deg = 0
+        k_side = 3
+        n, m = 10, 10
+        image = np.random.random((n, m))
+        refimage = image.copy()
+        mm, b, c = varconv.gen_matrix_system(image, refimage, k_side, deg)
+        coeffs = np.linalg.solve(mm, b)
+        kc = k_side // 2
+        result_kernel = coeffs.reshape((k_side, k_side))
+        best_kernel = np.zeros((k_side, k_side))
         best_kernel[kc, kc] = 1.0
         self.assertLess(np.linalg.norm(result_kernel - best_kernel), 1E-10)
 
     def test_convolve2d_adaptive_idkernel(self):
         kernel = np.zeros((3, 3, 1), dtype="float64")
         kernel[1, 1, 0] = 1.0
-        # image = np.random.random((10, 10))
-        image = np.arange(100, dtype="float64").reshape((10, 10))
+        image = np.random.random((10, 10))
+        # image = np.arange(100, dtype="float64").reshape((10, 10))
         conv = varconv.convolve2d_adaptive(image, kernel, 0)
-        # print(image)
-        # print(conv)
         self.assertEqual(conv.shape, image.shape)
         self.assertLess(np.linalg.norm(image - conv), 1E-10)
+
+    def test_convolve2d_adaptive_undoing(self):
+        deg = 2
+        k_side = 3
+        pol_dof = (deg + 1) * (deg + 2) / 2
+        kernel = np.random.random((k_side, k_side, pol_dof))
+        refimage = np.random.random((10, 10))
+        image = varconv.convolve2d_adaptive(refimage, kernel, deg)
+        mm, b, c = varconv.gen_matrix_system(image, refimage, k_side, deg)
+        coeffs = np.linalg.solve(mm, b)
+        result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
+        opt_ref = varconv.convolve2d_adaptive(refimage, result_kernel, deg)
+        self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
+                        np.linalg.norm(image, ord=np.inf), 1E-8)
+        self.assertLess(np.linalg.norm((kernel - result_kernel).flatten(),
+                                       ord=np.inf) /
+                        np.linalg.norm(kernel.flatten(), ord=np.inf), 1E-8)
 
 if __name__ == "__main__":
     unittest.main()
