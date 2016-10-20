@@ -206,6 +206,33 @@ class TestSubtract(unittest.TestCase):
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
+    def test_find_best_variable_kernel_undoing(self):
+        deg = 2
+        k_side = 3
+        pol_dof = (deg + 1) * (deg + 2) / 2
+        kernel = np.random.random((k_side, k_side, pol_dof))
+        image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
+
+        result_kernel = ois.find_best_variable_kernel(
+            image, self.ref_img, k_side, deg)
+
+        opt_ref = ois.convolve2d_adaptive(self.ref_img, result_kernel, deg)
+        self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
+                        np.linalg.norm(image, ord=np.inf), 1E-8)
+
+    def test_convolve2d_adaptive_checks(self):
+        bad_shape_kernel = np.random.random((3, 3))
+        bad_shape_image = np.random.random((100, ))
+        kernel = np.random.random((3, 3, 1))
+
+        with self.assertRaises(ValueError):
+            ois.convolve2d_adaptive(self.ref_img, bad_shape_kernel, 0)
+        with self.assertRaises(ValueError):
+            ois.convolve2d_adaptive(bad_shape_image, kernel, 0)
+
+        ois.convolve2d_adaptive(self.ref_img.astype('int32'), kernel, 0)
+        ois.convolve2d_adaptive(self.ref_img, kernel.astype('int32'), 0)
+
 
 class TestVarConv(unittest.TestCase):
 

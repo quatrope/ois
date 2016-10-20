@@ -327,16 +327,51 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
 def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
     import varconv
 
-    image = np.random.random((10, 10))
-    refimage = np.random.random((10, 10))
-    m, b, conv = varconv.gen_matrix_system(image, refimage, kernel_side,
-                                           poly_degree)
-    # coeffs = np.linalg.solve(m, b)
-    print("Shape of M", m.shape)
-    print("Shape of b", b.shape)
-    print("Shape of conv", conv.shape)
-    # print("Coeffs: ", coeffs)
-    return
+    # Check here for dimensions
+    if image.ndim != 2:
+        raise ValueError("Wrong dimensions for image")
+    if refimage.ndim != 2:
+        raise ValueError("Wrong dimensions for refimage")
+
+    # Check here for types
+    if image.dtype != np.float64:
+        img64 = image.astype('float64')
+    else:
+        img64 = image
+    if refimage.dtype != np.float64:
+        ref64 = refimage.astype('float64')
+    else:
+        ref64 = refimage
+
+    k_side = kernel_side
+    poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
+    m, b, conv = varconv.gen_matrix_system(img64, ref64, k_side, poly_degree)
+    coeffs = np.linalg.solve(m, b)
+
+    return coeffs.reshape((k_side, k_side, poly_dof))
+
+
+def convolve2d_adaptive(image, kernel, poly_degree):
+    import varconv
+
+    # Check here for dimensions
+    if image.ndim != 2:
+        raise ValueError("Wrong dimensions for image")
+    if kernel.ndim != 3:
+        raise ValueError("Wrong dimensions for kernel")
+
+    # Check here for types
+    if image.dtype != np.float64:
+        img64 = image.astype('float64')
+    else:
+        img64 = image
+    if kernel.dtype != np.float64:
+        k64 = kernel.astype('float64')
+    else:
+        k64 = kernel
+
+    conv = varconv.convolve2d_adaptive(img64, k64, poly_degree)
+    return conv
 
 
 if __name__ == '__main__':
