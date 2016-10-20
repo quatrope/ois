@@ -209,9 +209,6 @@ class TestSubtract(unittest.TestCase):
 
 class TestVarConv(unittest.TestCase):
 
-    def setUp(self):
-        pass
-
     def test_gen_matrix_system_sizes(self):
         deg = 2
         k_side = 3
@@ -265,6 +262,28 @@ class TestVarConv(unittest.TestCase):
         self.assertLess(np.linalg.norm((kernel - result_kernel).flatten(),
                                        ord=np.inf) /
                         np.linalg.norm(kernel.flatten(), ord=np.inf), 1E-8)
+
+    def test_convolve2d_adaptive_cameraman(self):
+        from PIL import Image
+        this_dir = os.path.abspath(os.path.dirname(__file__))
+        cameraman_path = os.path.join(this_dir, "cameraman.tif")
+        refimage = np.array(Image.open(cameraman_path), dtype='float64')
+
+        # degrade reference
+        deg = 2
+        k_side = 3
+        pol_dof = (deg + 1) * (deg + 2) / 2
+        kernel = np.random.random((k_side, k_side, pol_dof))
+        image = varconv.convolve2d_adaptive(refimage, kernel, deg)
+
+        mm, b, c = varconv.gen_matrix_system(image, refimage, k_side, deg)
+        coeffs = np.linalg.solve(mm, b)
+        result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
+
+        opt_ref = varconv.convolve2d_adaptive(refimage, result_kernel, deg)
+        self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
+                        np.linalg.norm(image, ord=np.inf), 1E-8)
+
 
 if __name__ == "__main__":
     unittest.main()

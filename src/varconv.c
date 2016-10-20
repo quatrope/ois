@@ -1,6 +1,6 @@
 #include <Python.h>
 //#include <numpy/npy_common.h>
-#include <numpy/ndarrayobject.h>
+//#include <numpy/ndarrayobject.h>
 #include <numpy/arrayobject.h>
 
 double multiply_and_sum(int nsize, double* C1, double* C2);
