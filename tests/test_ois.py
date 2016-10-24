@@ -214,7 +214,7 @@ class TestSubtract(unittest.TestCase):
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
 
         result_kernel = ois.find_best_variable_kernel(
-            image, self.ref_img, k_side, deg)
+            image, self.ref_img, k_side, deg, -1)
 
         opt_ref = ois.convolve2d_adaptive(self.ref_img, result_kernel, deg)
         self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
@@ -243,7 +243,7 @@ class TestVarConv(unittest.TestCase):
         image = np.random.random((n, m))
         refimage = image.copy()
         mm, b, c = varconv.gen_matrix_system(image, refimage, None,
-                                             k_side, deg)
+                                             k_side, deg, -1)
         pol_dof = (deg + 1) * (deg + 2) / 2
         m_dof = (pol_dof * k_side * k_side)
         k_size = k_side * k_side
@@ -258,7 +258,7 @@ class TestVarConv(unittest.TestCase):
         image = np.random.random((n, m))
         refimage = image.copy()
         mm, b, c = varconv.gen_matrix_system(image, refimage, None,
-                                             k_side, deg)
+                                             k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         kc = k_side // 2
         result_kernel = coeffs.reshape((k_side, k_side))
@@ -275,7 +275,7 @@ class TestVarConv(unittest.TestCase):
         mask = np.zeros((n, m), dtype='bool')
         mask[3:5, 3:5]
         mm, b, c = varconv.gen_matrix_system(image, refimage, mask,
-                                             k_side, deg)
+                                             k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         kc = k_side // 2
         result_kernel = coeffs.reshape((k_side, k_side))
@@ -300,7 +300,7 @@ class TestVarConv(unittest.TestCase):
         refimage = np.random.random((10, 10))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
         mm, b, c = varconv.gen_matrix_system(image, refimage, None,
-                                             k_side, deg)
+                                             k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
         opt_ref = varconv.convolve2d_adaptive(refimage, result_kernel, deg)
@@ -324,7 +324,7 @@ class TestVarConv(unittest.TestCase):
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
         mm, b, c = varconv.gen_matrix_system(image, refimage, None,
-                                             k_side, deg)
+                                             k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
 
@@ -348,7 +348,7 @@ class TestVarConv(unittest.TestCase):
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
         mm, b, c = varconv.gen_matrix_system(image, refimage, mask,
-                                             k_side, deg)
+                                             k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
 
@@ -365,7 +365,8 @@ class TestVarConv(unittest.TestCase):
         opt_img, opt_k, bkg = ois.optimalkernelandbkg(
             image, refimage, bkgdegree=0, kernelshape=(k_side, k_side))
 
-        opt_vark = ois.find_best_variable_kernel(image, refimage, k_side, deg)
+        opt_vark = ois.find_best_variable_kernel(image, refimage, k_side,
+                                                 deg, 0)
         self.assertEqual(opt_vark.shape, (k_side, k_side, 1))
         opt_vark = opt_vark.reshape((k_side, k_side))
 

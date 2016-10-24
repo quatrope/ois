@@ -351,7 +351,8 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
     return subtract_collage
 
 
-def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
+def find_best_variable_kernel(image, refimage, kernel_side,
+                              poly_degree, bkg_degree):
     import varconv
 
     # Check here for dimensions
@@ -376,10 +377,12 @@ def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
 
     poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
     m, b, conv = varconv.gen_matrix_system(img_data, ref_data, mask,
-                                           k_side, poly_degree)
+                                           k_side, poly_degree, bkg_degree)
     coeffs = np.linalg.solve(m, b)
+    k_dof = k_side * k_side * poly_dof
+    kernel = coeffs[:k_dof].reshape((k_side, k_side, poly_dof))
 
-    return coeffs.reshape((k_side, k_side, poly_dof))
+    return kernel
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):

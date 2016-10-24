@@ -6,6 +6,7 @@
 double multiply_and_sum(int nsize, double* C1, double* C2);
 double multiply_and_sum_mask(int nsize, double* C1, double* C2, char* mask);
 void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refimage, double* Conv);
+void fill_c_matrices_for_background(int n, int m, int bkg_deg, double* Conv_bkg);
 
 
 static PyObject *
@@ -13,11 +14,12 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
     PyArrayObject *np_image, *np_refimage, *np_mask;
     int k_side;
-    int deg; // The degree of the varying polynomial
+    int deg; // The degree of the varying polynomial for the kernel
+    int bkg_deg; // The degree of the varying polynomial for the background
     unsigned char hasmask = 1;
 
-    if (!PyArg_ParseTuple(args, "O!O!Oii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &np_mask, &k_side, &deg)) {
+    if (!PyArg_ParseTuple(args, "O!O!Oiii", &PyArray_Type, &np_image,
+            &PyArray_Type, &np_refimage, &np_mask, &k_side, &deg, &bkg_deg)) {
         return NULL;
     }
     if (NULL == np_image) return NULL;
@@ -39,8 +41,19 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     int kernel_size = k_side * k_side;
     int img_size = n * m;
     int poly_degree = (deg + 1) * (deg + 2) / 2;
-    double* Conv = calloc(img_size * kernel_size * poly_degree, sizeof(*Conv));
+    int bkg_dof;
+    if (bkg_deg == -1) {
+        bkg_dof = 0;
+    } else {
+        bkg_dof = (bkg_deg + 1) * (bkg_deg + 2) / 2;
+    }
+    double* Conv = calloc(img_size * (kernel_size * poly_degree + bkg_dof), sizeof(*Conv));
     fill_c_matrices_for_kernel(k_side, deg, n, m, refimage, Conv);
+    double* Conv_bkg;
+    if (bkg_deg != -1) {
+        Conv_bkg = Conv + img_size * kernel_size * poly_degree;
+        fill_c_matrices_for_background(n, m, bkg_deg, Conv_bkg);
+    }
 
     //Create matrices M and vector b
     int total_dof = kernel_size * poly_degree;
@@ -217,4 +230,29 @@ void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refim
     } // p
 
     return;
+}
+
+void fill_c_matrices_for_background(int n, int m, int bkg_deg, double* Conv_bkg) {
+
+    int exp_index = 0;
+    for (int exp_x = 0; exp_x <= bkg_deg; exp_x++) {
+        for (int exp_y = 0; exp_y <= bkg_deg - exp_x; exp_y++) {
+
+            double* Conv_xy = Conv_bkg + exp_index * n * m;
+            
+            for (int conv_row = 0; conv_row < n; ++conv_row) {
+                for (int conv_col = 0; conv_col < m; ++conv_col) {
+                    int conv_index = conv_row * m + conv_col;
+                    double x_pow = pow(conv_col, exp_x);
+                    double y_pow = pow(conv_row, exp_y);
+
+                    Conv_xy[conv_index] = x_pow * y_pow;
+                } // conv_col
+            } // conv_row
+            
+            exp_index++;
+        } // exp_y
+    } // exp_x
+
+    return;   
 }
