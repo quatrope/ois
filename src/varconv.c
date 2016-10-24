@@ -57,7 +57,7 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     }
 
     //Create matrices M and vector b
-    int total_dof = kernel_size * poly_degree;
+    int total_dof = kernel_size * poly_degree + bkg_dof;
     double* M = malloc(total_dof * total_dof * sizeof(*M));
     double* b = malloc(total_dof * sizeof(*b));
     if (hasmask == 1) {
@@ -86,10 +86,10 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 
     npy_intp Mdims[2] = {total_dof, total_dof};
     npy_intp bdims = total_dof;
-    npy_intp convdims[3] = {kernel_size, poly_degree, img_size};
+    npy_intp convdims[4] = {kernel_size, poly_degree, bkg_dof, img_size};
     PyObject* pyM = PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, M);
     PyObject* pyb = PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, b);
-    PyObject* pyConv = PyArray_SimpleNewFromData(3, convdims, NPY_DOUBLE, Conv);
+    PyObject* pyConv = PyArray_SimpleNewFromData(4, convdims, NPY_DOUBLE, Conv);
 
     return Py_BuildValue("OOO", pyM, pyb, pyConv);
 }

@@ -238,18 +238,20 @@ class TestVarConv(unittest.TestCase):
 
     def test_gen_matrix_system_sizes(self):
         deg = 2
+        bkg_deg = 0
         k_side = 3
         n, m = 10, 10
         image = np.random.random((n, m))
         refimage = image.copy()
         mm, b, c = varconv.gen_matrix_system(image, refimage, 0, None,
-                                             k_side, deg, -1)
+                                             k_side, deg, bkg_deg)
         pol_dof = (deg + 1) * (deg + 2) / 2
-        m_dof = (pol_dof * k_side * k_side)
+        bkg_dof = (bkg_deg + 1) * (bkg_deg + 2) / 2
         k_size = k_side * k_side
+        m_dof = pol_dof * k_size + bkg_dof
         self.assertEqual(mm.shape, (m_dof, m_dof))
         self.assertEqual(b.shape, (m_dof,))
-        self.assertEqual(c.shape, (k_size, pol_dof, n * m))
+        self.assertEqual(c.shape, (k_size, pol_dof, bkg_dof, n * m))
 
     def test_gen_matrix_system_constantkernel(self):
         deg = 0
