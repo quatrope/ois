@@ -16,15 +16,16 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     int k_side;
     int deg; // The degree of the varying polynomial for the kernel
     int bkg_deg; // The degree of the varying polynomial for the background
-    unsigned char hasmask = 1;
+    unsigned char hasmask;
 
-    if (!PyArg_ParseTuple(args, "O!O!Oiii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &np_mask, &k_side, &deg, &bkg_deg)) {
+    if (!PyArg_ParseTuple(args, "O!O!bOiii", &PyArray_Type, &np_image,
+            &PyArray_Type, &np_refimage, &hasmask, &np_mask,
+            &k_side, &deg, &bkg_deg)) {
         return NULL;
     }
     if (NULL == np_image) return NULL;
     if (NULL == np_refimage) return NULL;
-    if (NULL == np_mask) hasmask = 0;
+    if (NULL == np_mask) return NULL;
 
     int n = np_image->dimensions[0];
     int m = np_image->dimensions[1];
@@ -202,9 +203,7 @@ void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refim
 
             int exp_index = 0;
             for (int exp_x = 0; exp_x <= deg; exp_x++) {
-                //double p_pow = pow(p - khs, exp_x);
                 for (int exp_y = 0; exp_y <= deg - exp_x; exp_y++) {
-                    //double q_pow = pow(q - khs, exp_y);
                     double* Conv_pqkl = Conv_pq + exp_index * img_size;
                     
                     for (int conv_row = 0; conv_row < n; ++conv_row) {
