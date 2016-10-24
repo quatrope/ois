@@ -206,17 +206,15 @@ class TestSubtract(unittest.TestCase):
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
-    def test_find_best_variable_kernel_undoing(self):
+    def test_optimal_adaptive_bramich_undoing(self):
         deg = 2
+        bkg_deg = None
         k_side = 3
         pol_dof = (deg + 1) * (deg + 2) / 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-
-        result_kernel = ois.find_best_variable_kernel(
-            image, self.ref_img, k_side, deg, -1)
-
-        opt_ref = ois.convolve2d_adaptive(self.ref_img, result_kernel, deg)
+        opt_ref, k, b = ois.optimal_adaptive_bramich(image, self.ref_img,
+                                                     k_side, deg, bkg_deg)
         self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
                         np.linalg.norm(image, ord=np.inf), 1E-8)
 
@@ -358,8 +356,9 @@ class TestVarConv(unittest.TestCase):
         self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
                         np.linalg.norm(image, ord=np.inf), 1E-8)
 
-    def test_bramich_consistency(self):
+    def test_both_bramich_consistency(self):
         deg = 0
+        bkg_deg = 0
         k_side = 3
         image = np.random.random((10, 10))
         refimage = np.random.random((10, 10))
@@ -367,8 +366,8 @@ class TestVarConv(unittest.TestCase):
         opt_img, opt_k, bkg = ois.optimalkernelandbkg(
             image, refimage, bkgdegree=0, kernelshape=(k_side, k_side))
 
-        opt_vark = ois.find_best_variable_kernel(image, refimage, k_side,
-                                                 deg, 0)
+        opt_img, opt_vark, b = ois.optimal_adaptive_bramich(
+            image, refimage, k_side, deg, bkg_deg)
         self.assertEqual(opt_vark.shape, (k_side, k_side, 1))
         opt_vark = opt_vark.reshape((k_side, k_side))
 

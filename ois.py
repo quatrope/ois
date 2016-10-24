@@ -351,8 +351,8 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
     return subtract_collage
 
 
-def find_best_variable_kernel(image, refimage, kernel_side,
-                              poly_degree, bkg_degree):
+def optimal_adaptive_bramich(image, refimage, kernel_side,
+                             poly_degree, bkg_degree):
     import varconv
 
     # Check here for dimensions
@@ -375,15 +375,23 @@ def find_best_variable_kernel(image, refimage, kernel_side,
     k_shape = (k_side, k_side)
     img_data, ref_data, mask = separate_data_mask(img64, ref64, k_shape)
 
+    c_bkg_degree = -1 if bkg_degree is None else bkg_degree
     poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
     m, b, conv = varconv.gen_matrix_system(img_data, ref_data,
                                            mask is not None, mask,
-                                           k_side, poly_degree, bkg_degree)
+                                           k_side, poly_degree, c_bkg_degree)
     coeffs = np.linalg.solve(m, b)
     k_dof = k_side * k_side * poly_dof
     kernel = coeffs[:k_dof].reshape((k_side, k_side, poly_dof))
+    opt_conv = varconv.convolve2d_adaptive(ref64, kernel, poly_degree)
+    if bkg_degree is not None:
+        background = _coeffstobackground(image.shape, coeffs[k_dof:])
+        opt_image = opt_conv + background
+    else:
+        background = np.zeros(image.shape)
+        opt_image = opt_conv
 
-    return kernel
+    return opt_image, kernel, background
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
