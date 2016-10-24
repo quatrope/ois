@@ -7,78 +7,35 @@ double multiply_and_sum(int nsize, double* C1, double* C2);
 double multiply_and_sum_mask(int nsize, double* C1, double* C2, char* mask);
 void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refimage, double* Conv);
 
+
 static PyObject *
 varconv_gen_matrix_system(PyObject *self, PyObject *args)
-{
-    PyArrayObject *np_image, *np_refimage;
-    int k_side;
-    int deg; // The degree of the varying polynomial
-
-    if (!PyArg_ParseTuple(args, "O!O!ii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &k_side, &deg)) return NULL;
-    if (NULL == np_image) return NULL;
-    if (NULL == np_refimage) return NULL;
-
-    int n = np_image->dimensions[0];
-    int m = np_image->dimensions[1];
-
-    double* image = (double*)np_image->data;
-    double* refimage = (double*)np_refimage->data;
-
-    int kernel_size = k_side * k_side;
-    int img_size = n * m;
-    int poly_degree = (deg + 1) * (deg + 2) / 2;
-    double* Conv = calloc(img_size * kernel_size * poly_degree, sizeof(*Conv));
-    fill_c_matrices_for_kernel(k_side, deg, n, m, refimage, Conv);
-
-    //Create matrices M and vector b
-    int total_dof = kernel_size * poly_degree;
-    double* M = malloc(total_dof * total_dof * sizeof(*M));
-    double* b = malloc(total_dof * sizeof(*b));
-    for (int i = 0; i < total_dof; i++) {
-        double* C1 = Conv + i * img_size;
-        for (int j = i; j < total_dof; j++) {
-            double* C2 = Conv + j * img_size;
-            M[i * total_dof + j] = multiply_and_sum(img_size, C1, C2);
-            M[j * total_dof + i] = M[i * total_dof + j];
-        }
-        b[i] = multiply_and_sum(img_size, image, C1);
-    }
-
-    //free(Conv);
-
-    npy_intp Mdims[2] = {total_dof, total_dof};
-    npy_intp bdims = total_dof;
-    npy_intp convdims[3] = {kernel_size, poly_degree, img_size};
-    PyObject* pyM = PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, M);
-    PyObject* pyb = PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, b);
-    PyObject* pyConv = PyArray_SimpleNewFromData(3, convdims, NPY_DOUBLE, Conv);
-
-    return Py_BuildValue("OOO", pyM, pyb, pyConv);
-}
-
-
-static PyObject *
-varconv_gen_matrix_system_masked(PyObject *self, PyObject *args)
 {
     PyArrayObject *np_image, *np_refimage, *np_mask;
     int k_side;
     int deg; // The degree of the varying polynomial
+    unsigned char hasmask = 1;
 
-    if (!PyArg_ParseTuple(args, "O!O!O!ii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &PyArray_Type, &np_mask,
-            &k_side, &deg)) return NULL;
+    if (!PyArg_ParseTuple(args, "O!O!Oii", &PyArray_Type, &np_image,
+            &PyArray_Type, &np_refimage, &np_mask, &k_side, &deg)) {
+        return NULL;
+    }
     if (NULL == np_image) return NULL;
     if (NULL == np_refimage) return NULL;
-    if (NULL == np_mask) return NULL;
+    if (NULL == np_mask) hasmask = 0;
 
     int n = np_image->dimensions[0];
     int m = np_image->dimensions[1];
 
     double* image = (double*)np_image->data;
     double* refimage = (double*)np_refimage->data;
-    char* mask = (char*)np_mask->data;
-
+    char* mask;
+    if (hasmask == 1) {
+        mask = (char*)np_mask->data;
+    } else {
+        mask = NULL;
+    }
+    
     int kernel_size = k_side * k_side;
     int img_size = n * m;
     int poly_degree = (deg + 1) * (deg + 2) / 2;
@@ -89,14 +46,26 @@ varconv_gen_matrix_system_masked(PyObject *self, PyObject *args)
     int total_dof = kernel_size * poly_degree;
     double* M = malloc(total_dof * total_dof * sizeof(*M));
     double* b = malloc(total_dof * sizeof(*b));
-    for (int i = 0; i < total_dof; i++) {
-        double* C1 = Conv + i * img_size;
-        for (int j = i; j < total_dof; j++) {
-            double* C2 = Conv + j * img_size;
-            M[i * total_dof + j] = multiply_and_sum_mask(img_size, C1, C2, mask);
-            M[j * total_dof + i] = M[i * total_dof + j];
+    if (hasmask == 1) {
+        for (int i = 0; i < total_dof; i++) {
+            double* C1 = Conv + i * img_size;
+            for (int j = i; j < total_dof; j++) {
+                double* C2 = Conv + j * img_size;
+                M[i * total_dof + j] = multiply_and_sum_mask(img_size, C1, C2, mask);
+                M[j * total_dof + i] = M[i * total_dof + j];
+            }
+            b[i] = multiply_and_sum_mask(img_size, image, C1, mask);
         }
-        b[i] = multiply_and_sum_mask(img_size, image, C1, mask);
+    } else {
+        for (int i = 0; i < total_dof; i++) {
+            double* C1 = Conv + i * img_size;
+            for (int j = i; j < total_dof; j++) {
+                double* C2 = Conv + j * img_size;
+                M[i * total_dof + j] = multiply_and_sum(img_size, C1, C2);
+                M[j * total_dof + i] = M[i * total_dof + j];
+            }
+            b[i] = multiply_and_sum(img_size, image, C1);
+        }
     }
 
     //free(Conv);
@@ -180,8 +149,6 @@ static PyMethodDef VarConvMethods[] = {
      "Generate the matrix system to find best convolution parameters."},
     {"convolve2d_adaptive", varconv_convolve2d_adaptive, METH_VARARGS,
      "Convolves image with an adaptive kernel."},
-    {"gen_matrix_system_masked", varconv_gen_matrix_system_masked, METH_VARARGS,
-    "Generate the matrix system to find best convolution parameters when there is a bad pixel mask defined."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

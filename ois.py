@@ -375,12 +375,8 @@ def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
     img_data, ref_data, mask = separate_data_mask(img64, ref64, k_shape)
 
     poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
-    if mask is None:
-        m, b, conv = varconv.gen_matrix_system(img_data, ref_data,
-                                               k_side, poly_degree)
-    else:
-        m, b, conv = varconv.gen_matrix_system_masked(img_data, ref_data, mask,
-                                                      k_side, poly_degree)
+    m, b, conv = varconv.gen_matrix_system(img_data, ref_data, mask,
+                                           k_side, poly_degree)
     coeffs = np.linalg.solve(m, b)
 
     return coeffs.reshape((k_side, k_side, poly_dof))
