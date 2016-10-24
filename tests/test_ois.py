@@ -311,6 +311,23 @@ class TestVarConv(unittest.TestCase):
         self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
                         np.linalg.norm(image, ord=np.inf), 1E-8)
 
+    def test_bramich_consistency(self):
+        deg = 0
+        k_side = 3
+        image = np.random.random((10, 10))
+        refimage = np.random.random((10, 10))
+
+        opt_img, opt_k, bkg = ois.optimalkernelandbkg(
+            image, refimage, bkgdegree=0, kernelshape=(k_side, k_side))
+
+        opt_vark = ois.find_best_variable_kernel(image, refimage, k_side, deg)
+        self.assertEqual(opt_vark.shape, (k_side, k_side, 1))
+        opt_vark = opt_vark.reshape((k_side, k_side))
+
+        diff_norm = np.linalg.norm((opt_k - opt_vark).flatten(), ord=np.inf)
+        kernel_norm = np.linalg.norm(opt_k.flatten(), ord=np.inf)
+        self.assertLess(diff_norm / kernel_norm, 1E-8)
+
 
 if __name__ == "__main__":
     unittest.main()

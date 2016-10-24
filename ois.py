@@ -162,6 +162,33 @@ def clean_gausslist(gausslist, kernelshape):
             agauss['sy'] = 2.
 
 
+def separate_data_mask(image, refimage, kernelshape):
+    def has_mask(image):
+        is_masked_array = isinstance(image, np.ma.MaskedArray)
+        if is_masked_array and isinstance(image.mask, np.ndarray):
+            return True
+        return False
+
+    def ret_data(image):
+        if isinstance(image, np.ma.MaskedArray):
+            image_data = image.data
+        else:
+            image_data = image
+        return image_data
+
+    badpixmask = None
+    if has_mask(refimage):
+        badpixmask = ndimage.binary_dilation(
+            refimage.mask.astype('uint8'), structure=np.ones(kernelshape))\
+            .astype('bool')
+        if has_mask(image):
+            badpixmask += image.mask
+    elif has_mask(image):
+        badpixmask = image.mask
+
+    return ret_data(image), ret_data(refimage), badpixmask
+
+
 def optimalkernelandbkg(image, refimage, gausslist=None,
                         bkgdegree=3, kernelshape=(11, 11)):
     """Do Optimal Image Subtraction and return optimal kernel and background.
@@ -344,8 +371,16 @@ def find_best_variable_kernel(image, refimage, kernel_side, poly_degree):
         ref64 = refimage
 
     k_side = kernel_side
+    k_shape = (k_side, k_side)
+    img_data, ref_data, mask = separate_data_mask(img64, ref64, k_shape)
+
     poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
-    m, b, conv = varconv.gen_matrix_system(img64, ref64, k_side, poly_degree)
+    if mask is None:
+        m, b, conv = varconv.gen_matrix_system(img_data, ref_data,
+                                               k_side, poly_degree)
+    else:
+        m, b, conv = varconv.gen_matrix_system_masked(img_data, ref_data, mask,
+                                                      k_side, poly_degree)
     coeffs = np.linalg.solve(m, b)
 
     return coeffs.reshape((k_side, k_side, poly_dof))
