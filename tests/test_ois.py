@@ -101,21 +101,22 @@ class TestSubtract(unittest.TestCase):
 
         self.image += mybkg
 
-    def test_optimalkernelandbkg_bramich(self):
+    def test_nonadaptive_system_bramich(self):
         # Test Bramich
-        ruined_image, optKernel, bkg = ois.optimalkernelandbkg(
-            self.image, self.ref_img, bkgdegree=self.bkgdeg,
-            kernelshape=(11, 11))
+        ruined_image, optKernel, bkg = ois._nonadaptive_system(
+            self.image, self.ref_img, kernelshape=(11, 11),
+            bkgdegree=self.bkgdeg)
         norm_diff = np.linalg.norm(ruined_image - self.image) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
-    def test_optimalkernelandbkg_alardlp(self):
+    def test_nonadaptive_system_alardlp(self):
         # Test Alard & Lupton
-        ruined_image, optKernel, bkg = ois.optimalkernelandbkg(
-            self.image, self.ref_img, gausslist=self.mygausslist,
+        ruined_image, optKernel, bkg = ois._nonadaptive_system(
+            self.image, self.ref_img,
+            kernelshape=(11, 11),
             bkgdegree=self.bkgdeg,
-            kernelshape=(11, 11))
+            gausslist=self.mygausslist)
         norm_diff = np.linalg.norm(ruined_image - self.image) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
@@ -206,15 +207,16 @@ class TestSubtract(unittest.TestCase):
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
 
-    def test_optimal_adaptive_bramich_undoing(self):
+    def test_adaptivebramich_system_undoing(self):
         deg = 2
         bkg_deg = None
         k_side = 3
+        k_shape = (k_side, k_side)
         pol_dof = (deg + 1) * (deg + 2) / 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-        opt_ref, k, b = ois.optimal_adaptive_bramich(image, self.ref_img,
-                                                     k_side, deg, bkg_deg)
+        opt_ref, k, b = ois._adaptivebramich_system(image, self.ref_img,
+                                                   k_shape, bkg_deg, deg)
         self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
                         np.linalg.norm(image, ord=np.inf), 1E-8)
 
@@ -362,12 +364,12 @@ class TestVarConv(unittest.TestCase):
         k_side = 3
         image = np.random.random((10, 10))
         refimage = np.random.random((10, 10))
+        k_shape = (k_side, k_side)
 
-        opt_img, opt_k, bkg = ois.optimalkernelandbkg(
-            image, refimage, bkgdegree=0, kernelshape=(k_side, k_side))
-
-        opt_img, opt_vark, b = ois.optimal_adaptive_bramich(
-            image, refimage, k_side, deg, bkg_deg)
+        opt_img, opt_k, bkg = ois._nonadaptive_system(
+            image, refimage, kernelshape=k_shape, bkgdegree=0)
+        opt_img, opt_vark, b = ois._adaptivebramich_system(
+            image, refimage, k_shape, bkg_deg, deg)
         self.assertEqual(opt_vark.shape, (k_side, k_side, 1))
         opt_vark = opt_vark.reshape((k_side, k_side))
 

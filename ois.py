@@ -147,7 +147,7 @@ def _coeffstobackground(shape, coeffs, bkgdeg=None):
     return mybkg
 
 
-def clean_gausslist(gausslist, kernelshape):
+def _clean_gausslist(gausslist, kernelshape):
     if gausslist is None:
         return
     for agauss in gausslist:
@@ -162,7 +162,7 @@ def clean_gausslist(gausslist, kernelshape):
             agauss['sy'] = 2.
 
 
-def separate_data_mask(image, refimage, kernelshape):
+def _separate_data_mask(image, refimage, kernelshape):
     def has_mask(image):
         is_masked_array = isinstance(image, np.ma.MaskedArray)
         if is_masked_array and isinstance(image.mask, np.ndarray):
@@ -189,8 +189,8 @@ def separate_data_mask(image, refimage, kernelshape):
     return ret_data(image), ret_data(refimage), badpixmask
 
 
-def optimalkernelandbkg(image, refimage, gausslist=None,
-                        bkgdegree=3, kernelshape=(11, 11)):
+def _nonadaptive_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
+                        gausslist=None):
     """Do Optimal Image Subtraction and return optimal kernel and background.
 
     This is an implementation of the Optimal Image Subtraction algorith of
@@ -215,7 +215,7 @@ def optimalkernelandbkg(image, refimage, gausslist=None,
         print("This can only work with kernels of odd sizes.")
         return None, None, None
 
-    clean_gausslist(gausslist, kernelshape)
+    _clean_gausslist(gausslist, kernelshape)
 
     def has_mask(image):
         is_masked_array = isinstance(image, np.ma.MaskedArray)
@@ -339,20 +339,19 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
     stamp_slices = [[asly, aslx] for asly in stamps_y for aslx in stamps_x]
     for ind, ((sly_out, slx_out), (sly_in, slx_in)) in \
             enumerate(zip(recover_slices, stamp_slices)):
-        opti, ki, bgi = optimalkernelandbkg(img_stamps[ind],
+        opti, ki, bgi = _nonadaptive_system(img_stamps[ind],
                                             ref_stamps[ind],
-                                            gausslist,
+                                            kernelshape,
                                             bkgdegree,
-                                            kernelshape)
-
+                                            gausslist)
         subtract_collage[sly_in, slx_in] = \
             (img_stamps[ind] - opti)[sly_out, slx_out]
 
     return subtract_collage
 
 
-def optimal_adaptive_bramich(image, refimage, kernel_side,
-                             poly_degree, bkg_degree):
+def _adaptivebramich_system(image, refimage, kernel_shape,
+                            bkg_degree, poly_degree):
     import varconv
 
     # Check here for dimensions
@@ -371,9 +370,9 @@ def optimal_adaptive_bramich(image, refimage, kernel_side,
     else:
         ref64 = refimage
 
-    k_side = kernel_side
+    k_side = kernel_shape[0]
     k_shape = (k_side, k_side)
-    img_data, ref_data, mask = separate_data_mask(img64, ref64, k_shape)
+    img_data, ref_data, mask = _separate_data_mask(img64, ref64, k_shape)
 
     c_bkg_degree = -1 if bkg_degree is None else bkg_degree
     poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
@@ -418,6 +417,24 @@ def convolve2d_adaptive(image, kernel, poly_degree):
 
     conv = varconv.convolve2d_adaptive(img64, k64, poly_degree)
     return conv
+
+
+def optimal_system(image, refimage, kernel_shape, method="AdaptiveBramich",
+                   bkg_degree=3, *args, **kwargs):
+    """kw for bramich: grid_shape
+    kw for a-l: gausslist
+    kw for adaptive: poly_degree"""
+
+    default_system = adaptivebramich_system # noqa
+    all_strategies = {"AdaptiveBramich": _adaptivebramich_system,
+                      "Bramich": _nonadaptive_system,
+                      "Alard-Lupton": _nonadaptive_system}
+    diff_system = all_strategies.get(method, default_system) # noqa
+
+    opt_image, kernel, background = diff_system(
+        image, refimage, kernel_shape, bkg_degree, *args, **kwargs)
+
+    return opt_image, kernel, background
 
 
 if __name__ == '__main__':
