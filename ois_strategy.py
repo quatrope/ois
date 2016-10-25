@@ -99,29 +99,40 @@ class SubtractionStrategy:
                  for aY in allys[:self.bkg_degree + 1 - i]]
         return bkg_c
 
+    def make_system(self):
+        self.optimal_image = None
+        self.background = None
+        self.kernel = None
+
     def get_optimal_image(self):
         try:
             return self.optimal_image
         except:
-            return None
+            self.make_system()
+            return self.optimal_image
 
     def get_background(self):
         try:
             return self.background
         except:
-            return None
+            self.make_system()
+            return self.background
 
     def get_kernel(self):
         try:
             return self.kernel
         except:
-            return None
+            self.make_system()
+            return self.kernel
 
     def get_difference(self):
         try:
-            return self.image - self.optimal_image
+            self.difference = self.image - self.optimal_image
+            return self.difference
         except:
-            return None
+            self.make_system()
+            self.difference = self.image - self.optimal_image
+            return self.difference
 
 
 class AlardLuptonStrategy(SubtractionStrategy):
