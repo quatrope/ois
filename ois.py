@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.2a1'
+__version__ = '0.1'
 
 import numpy as np
 from scipy import signal
@@ -191,24 +191,6 @@ def _separate_data_mask(image, refimage, kernelshape):
 
 def _nonadaptive_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
                         gausslist=None):
-    """Do Optimal Image Subtraction and return optimal kernel and background.
-
-    This is an implementation of the Optimal Image Subtraction algorith of
-    Alard&Lupton. It returns the best kernel and background fit that match the
-    two images.
-
-    gausslist is a list of dictionaries containing data of the gaussians
-    used in the decomposition of the kernel. Dictionary keywords are:
-    center, sx, sy, modPolyDeg
-    If gausslist is None (default value), the OIS will try to optimize
-    the value of each pixel in the kernel.
-
-    bkgdegree is the degree of the polynomial to fit the background.
-
-    kernelshape is the shape of the kernel to use.
-
-    Return (optimal_image, kernel, background)
-    """
 
     kh, kw = kernelshape
     if kw % 2 != 1 or kh % 2 != 1:
@@ -419,11 +401,36 @@ def convolve2d_adaptive(image, kernel, poly_degree):
     return conv
 
 
-def optimal_system(image, refimage, kernel_shape, method="AdaptiveBramich",
-                   bkg_degree=3, *args, **kwargs):
-    """kw for bramich: grid_shape
-    kw for a-l: gausslist
-    kw for adaptive: poly_degree"""
+def optimal_system(image, refimage, kernel_shape, bkg_degree=3,
+                   method="AdaptiveBramich", *args, **kwargs):
+    """Do Optimal Image Subtraction and return optimal image, kernel
+    and background.
+
+    This is an implementation of a few Optimal Image Subtraction algorithms.
+    They all (optionally) simultaneously fit a background.
+
+    kernelshape: shape of the kernel to use. Must be of odd size.
+
+    bkgdegree: degree of the polynomial to fit the background.
+    To turn off background fitting set this to None.
+
+    method: One of the following strings
+    * Bramich: A Delta basis for the kernel (all pixels fit
+      independently)
+    * AdaptiveBramich: Same as Bramich, but with a polynomial variation across
+      the image.
+      It needs the parameter poly_degree, which is the polynomial degree of the
+      variation.
+    * Alard-Lupton: A modulated multi-Gaussian kernel.
+      It needs the gausslist keyword.
+      gausslist is a list of dictionaries containing data of the gaussians
+      used in the decomposition of the kernel. Dictionary keywords are:
+      center, sx, sy, modPolyDeg
+
+    Extra parameters are passed to the individual methods.
+
+    Return (optimal_image, kernel, background)
+    """
 
     default_system = adaptivebramich_system # noqa
     all_strategies = {"AdaptiveBramich": _adaptivebramich_system,
