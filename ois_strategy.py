@@ -38,6 +38,13 @@ class SubtractionStrategy:
     def __init__(self, image, refimage, kernelshape, bkg_degree):
         self.image = image
         self.refimage = refimage
+        # Check here for dimensions
+        if self.image.ndim != 2:
+            raise ValueError("Wrong dimensions for image")
+        if self.refimage.ndim != 2:
+            raise ValueError("Wrong dimensions for refimage")
+        if self.image.shape != self.refimage.shape:
+            raise ValueError("Images have different shapes")
         self.h, self.w = image.shape
         self.image_data, self.refimage_data, self.badpixmask =\
             self.separate_data_mask()
@@ -254,53 +261,45 @@ class BramichStrategy(SubtractionStrategy):
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
-    def __init__(self):
+    def __init__(self, image, refimage, kernelshape, bkg_degree, poly_degree):
+        self.poly_deg = poly_degree
+        self.super.__init__(image, refimage, kernelshape, bkg_degree)
 
+    def make_system(self):
+        import varconv
 
+        # Check here for types
+        if self.image_data.dtype != np.float64:
+            img64 = self.image_data.astype('float64')
+        else:
+            img64 = self.image_data
+        if self.refimage_data.dtype != np.float64:
+            ref64 = self.refimage_data.astype('float64')
+        else:
+            ref64 = self.refimage_data
 
-    def make_system(image, refimage, kernel_side, poly_degree, bkg_degree):
-    import varconv
+        c_bkg_degree = -1 if self.bkg_degree is None else self.bkg_degree
+        m, b, conv = varconv.gen_matrix_system(img64, ref64,
+                                               self.badpixmask is not None,
+                                               self.badpixmask,
+                                               self.k_side, self.poly_deg,
+                                               c_bkg_degree)
+        coeffs = np.linalg.solve(m, b)
+        poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) / 2
+        k_dof = self.k_side * self.k_side * poly_dof
+        ks = self.k_side
+        self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
+        opt_conv = varconv.convolve2d_adaptive(ref64, self.kernel,
+                                               self.poly_deg)
+        if self.bkg_degree is not None:
+            self.background = self.coeffstobackground(coeffs[k_dof:])
+            self.opt_image = opt_conv + self.background
+        else:
+            self.background = np.zeros(self.image.shape)
+            self.opt_image = opt_conv
 
-    # Check here for dimensions
-    if image.ndim != 2:
-        raise ValueError("Wrong dimensions for image")
-    if refimage.ndim != 2:
-        raise ValueError("Wrong dimensions for refimage")
-
-    # Check here for types
-    if image.dtype != np.float64:
-        img64 = image.astype('float64')
-    else:
-        img64 = image
-    if refimage.dtype != np.float64:
-        ref64 = refimage.astype('float64')
-    else:
-        ref64 = refimage
-
-    k_side = kernel_side
-    k_shape = (k_side, k_side)
-    img_data, ref_data, mask = separate_data_mask(img64, ref64, k_shape)
-
-    c_bkg_degree = -1 if bkg_degree is None else bkg_degree
-    poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
-    m, b, conv = varconv.gen_matrix_system(img_data, ref_data,
-                                           mask is not None, mask,
-                                           k_side, poly_degree, c_bkg_degree)
-    coeffs = np.linalg.solve(m, b)
-    k_dof = k_side * k_side * poly_dof
-    kernel = coeffs[:k_dof].reshape((k_side, k_side, poly_dof))
-    opt_conv = varconv.convolve2d_adaptive(ref64, kernel, poly_degree)
-    if bkg_degree is not None:
-        background = _coeffstobackground(image.shape, coeffs[k_dof:])
-        opt_image = opt_conv + background
-    else:
-        background = np.zeros(image.shape)
-        opt_image = opt_conv
-
-    if mask is not None:
-        opt_image = np.ma.array(opt_image, mask=mask)
-
-    return opt_image, kernel, background
+        if self.badpixmask is not None:
+            self.opt_image = np.ma.array(self.opt_image, mask=self.badpixmask)
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
@@ -326,11 +325,36 @@ def convolve2d_adaptive(image, kernel, poly_degree):
     return conv
 
 
-def optimal_system(image, refimage, method="AdaptiveBramich",
-                   bkg_degree=3, *args, **kwargs):
-    """kw for bramich: grid_shape
-    kw for a-l: gausslist
-    kw for adaptive: poly_degree"""
+def optimal_system(image, refimage, kernel_shape, bkg_degree=3,
+                   method="AdaptiveBramich", *args, **kwargs):
+    """Do Optimal Image Subtraction and return optimal image, kernel
+    and background.
+
+    This is an implementation of a few Optimal Image Subtraction algorithms.
+    They all (optionally) simultaneously fit a background.
+
+    kernelshape: shape of the kernel to use. Must be of odd size.
+
+    bkgdegree: degree of the polynomial to fit the background.
+    To turn off background fitting set this to None.
+
+    method: One of the following strings
+    * Bramich: A Delta basis for the kernel (all pixels fit
+      independently)
+    * AdaptiveBramich: Same as Bramich, but with a polynomial variation across
+      the image.
+      It needs the parameter poly_degree, which is the polynomial degree of the
+      variation.
+    * Alard-Lupton: A modulated multi-Gaussian kernel.
+      It needs the gausslist keyword.
+      gausslist is a list of dictionaries containing data of the gaussians
+      used in the decomposition of the kernel. Dictionary keywords are:
+      center, sx, sy, modPolyDeg
+
+    Extra parameters are passed to the individual methods.
+
+    Return (optimal_image, kernel, background)
+    """
 
     DefaultStrategy = AdaptiveBramichStrategy # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
@@ -338,7 +362,8 @@ def optimal_system(image, refimage, method="AdaptiveBramich",
                       "Alard-Lupton": AlardLuptonStrategy}
     DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
 
-    subt_strat = DiffStrategy(image, refimage, *args, **kwargs)
+    subt_strat = DiffStrategy(image, refimage, kernel_shape, bkg_degree,
+                              *args, **kwargs)
     opt_image = subt_strat.get_optimal_image()
     kernel = subt_strat.get_kernel()
     background = subt_strat.get_background()
