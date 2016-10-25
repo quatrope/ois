@@ -241,7 +241,7 @@ def _nonadaptive_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     background = _coeffstobackground(image.shape, coeffs[nkcoeffs:])
     if has_mask(refimage) or has_mask(image):
         background = np.ma.array(background, mask=badpixmask)
-    optimal_image = signal.convolve2d(refimage, kernel, mode='same') \
+    optimal_image = si gnal.convolve2d(refimage, kernel, mode='same') \
         + background
 
     return optimal_image, kernel, background

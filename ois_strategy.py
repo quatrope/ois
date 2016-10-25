@@ -8,8 +8,8 @@
     ### Usage example (from python):
 
         >>> import ois
-        >>> conv_image, optimalKernel, background =
-            ois.optimalkernelandbkg(image, referenceImage)
+        >>> difference, optimalImage, optimalKernel, background =
+                                   ois.optimal_system(image, referenceImage)
 
     (conv_image is the least square optimal approximation to image)
 
@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.2a1'
+__version__ = '0.1'
 
 import numpy as np
 from scipy import signal
@@ -98,6 +98,30 @@ class SubtractionStrategy:
         bkg_c = [anX * aY for i, anX in enumerate(allxs)
                  for aY in allys[:self.bkg_degree + 1 - i]]
         return bkg_c
+
+    def get_optimal_image(self):
+        try:
+            return self.optimal_image
+        except:
+            return None
+
+    def get_background(self):
+        try:
+            return self.background
+        except:
+            return None
+
+    def get_kernel(self):
+        try:
+            return self.kernel
+        except:
+            return None
+
+    def get_difference(self):
+        try:
+            return self.image - self.optimal_image
+        except:
+            return None
 
 
 class AlardLuptonStrategy(SubtractionStrategy):
@@ -325,8 +349,8 @@ def convolve2d_adaptive(image, kernel, poly_degree):
     return conv
 
 
-def optimal_system(image, refimage, kernel_shape, bkg_degree=3,
-                   method="AdaptiveBramich", *args, **kwargs):
+def optimal_system(image, refimage, kernel_shape=(11, 11), bkg_degree=3,
+                   method="AdaptiveBramich", **kwargs):
     """Do Optimal Image Subtraction and return optimal image, kernel
     and background.
 
@@ -363,10 +387,110 @@ def optimal_system(image, refimage, kernel_shape, bkg_degree=3,
     DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
 
     subt_strat = DiffStrategy(image, refimage, kernel_shape, bkg_degree,
-                              *args, **kwargs)
+                              **kwargs)
     opt_image = subt_strat.get_optimal_image()
     kernel = subt_strat.get_kernel()
     background = subt_strat.get_background()
     difference = subt_strat.get_difference()
 
     return difference, opt_image, kernel, background
+
+
+def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
+                   gridshape=(2, 2), method="AdaptiveBramich", **kwargs):
+    """Implement Optimal Image Subtraction on a grid and return the optimal
+    subtraction
+
+    This is an implementation of the Optimal Image Subtraction algorith of
+    Alard&Lupton(1998) and Bramich(2010)
+    It returns the optimal subtraction between image and refimage.
+
+    gausslist is a list of dictionaries containing data of the gaussians
+    used in the multigaussian decomposition of the kernel [Alard&Lupton, 1998].
+    Dictionary keywords are:
+    center, sx, sy, modPolyDeg
+
+    If gausslist is None (default value), the OIS will try to optimize the
+    value of each pixel in the kernel [Bramich, 2010].
+
+    bkgdegree is the degree of the polynomial to fit the background.
+
+    kernelshape is the shape of the kernel to use.
+
+    gridshape is a tuple containing the number of vertical and horizontal
+    divisions of the grid.
+
+    This method does not interpolate between the grids.
+
+    Return (subtraction_array)
+    """
+    ny, nx = gridshape
+    h, w = image.shape
+    kh, kw = kernelshape
+
+    DefaultStrategy = AdaptiveBramichStrategy # noqa
+    all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
+                      "Bramich": BramichStrategy,
+                      "Alard-Lupton": AlardLuptonStrategy}
+    DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
+
+    # normal slices with no border
+    stamps_y = [slice(h * i / ny, h * (i + 1) / ny, None) for i in range(ny)]
+    stamps_x = [slice(w * i / nx, w * (i + 1) / nx, None) for i in range(nx)]
+
+    # slices with borders where possible
+    slc_wborder_y = [slice(max(0, h * i / ny - (kh - 1) / 2),
+                           min(h, h * (i + 1) / ny + (kh - 1) / 2), None)
+                     for i in range(ny)]
+    slc_wborder_x = [slice(max(0, w * i / nx - (kw - 1) / 2),
+                           min(w, w * (i + 1) / nx + (kw - 1) / 2), None)
+                     for i in range(nx)]
+
+    img_stamps = [image[sly, slx] for sly in slc_wborder_y
+                  for slx in slc_wborder_x]
+    ref_stamps = [refimage[sly, slx] for sly in slc_wborder_y
+                  for slx in slc_wborder_x]
+
+    # After we do the subtraction we need to crop the extra borders in the
+    # stamps.
+    # The recover_slices are the prescription for what to crop on each stamp.
+    recover_slices = []
+    for i in range(ny):
+        start_border_y = slc_wborder_y[i].start
+        stop_border_y = slc_wborder_y[i].stop
+        sly_stop = h * (i + 1) / ny - stop_border_y
+        if sly_stop == 0:
+            sly_stop = None
+        sly = slice(h * i / ny - start_border_y, sly_stop, None)
+        for j in range(nx):
+            start_border_x = slc_wborder_x[j].start
+            stop_border_x = slc_wborder_x[j].stop
+            slx_stop = w * (j + 1) / nx - stop_border_x
+            if slx_stop == 0:
+                slx_stop = None
+            slx = slice(w * j / nx - start_border_x, slx_stop, None)
+            recover_slices.append([sly, slx])
+
+    # Here do the subtraction on each stamp
+    optimal_collage = np.ma.empty(image.shape)
+    bkg_collage = np.ma.empty(image.shape)
+    subtract_collage = np.ma.empty(image.shape)
+    kernel_collage = []
+    stamp_slices = [[asly, aslx] for asly in stamps_y for aslx in stamps_x]
+    for ind, ((sly_out, slx_out), (sly_in, slx_in)) in \
+            enumerate(zip(recover_slices, stamp_slices)):
+
+        subt_strat = DiffStrategy(img_stamps[ind], ref_stamps[ind],
+                                  kernelshape,
+                                  bkgdegree,
+                                  **kwargs)
+        opti = subt_strat.get_optimal_image()
+        ki = subt_strat.get_kernel()
+        bgi = subt_strat.get_background()
+        di = subt_strat.get_difference()
+        optimal_collage[sly_in, slx_in] = opti[sly_out, slx_out]
+        bkg_collage[sly_in, slx_in] = bgi[sly_out, slx_out]
+        subtract_collage[sly_in, slx_in] = di[sly_out, slx_out]
+        kernel_collage.append(ki)
+
+    return subtract_collage, optimal_collage, kernel_collage, bkg_collage
