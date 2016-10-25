@@ -391,6 +391,9 @@ def optimal_adaptive_bramich(image, refimage, kernel_side,
         background = np.zeros(image.shape)
         opt_image = opt_conv
 
+    if mask is not None:
+        opt_image = np.ma.array(opt_image, mask=mask)
+
     return opt_image, kernel, background
 
 
