@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.2a1'
+__version__ = '0.1'
 
 import numpy as np
 from scipy import signal
@@ -147,7 +147,7 @@ def _coeffstobackground(shape, coeffs, bkgdeg=None):
     return mybkg
 
 
-def clean_gausslist(gausslist, kernelshape):
+def _clean_gausslist(gausslist, kernelshape):
     if gausslist is None:
         return
     for agauss in gausslist:
@@ -162,7 +162,7 @@ def clean_gausslist(gausslist, kernelshape):
             agauss['sy'] = 2.
 
 
-def separate_data_mask(image, refimage, kernelshape):
+def _separate_data_mask(image, refimage, kernelshape):
     def has_mask(image):
         is_masked_array = isinstance(image, np.ma.MaskedArray)
         if is_masked_array and isinstance(image.mask, np.ndarray):
@@ -189,33 +189,15 @@ def separate_data_mask(image, refimage, kernelshape):
     return ret_data(image), ret_data(refimage), badpixmask
 
 
-def optimalkernelandbkg(image, refimage, gausslist=None,
-                        bkgdegree=3, kernelshape=(11, 11)):
-    """Do Optimal Image Subtraction and return optimal kernel and background.
-
-    This is an implementation of the Optimal Image Subtraction algorith of
-    Alard&Lupton. It returns the best kernel and background fit that match the
-    two images.
-
-    gausslist is a list of dictionaries containing data of the gaussians
-    used in the decomposition of the kernel. Dictionary keywords are:
-    center, sx, sy, modPolyDeg
-    If gausslist is None (default value), the OIS will try to optimize
-    the value of each pixel in the kernel.
-
-    bkgdegree is the degree of the polynomial to fit the background.
-
-    kernelshape is the shape of the kernel to use.
-
-    Return (optimal_image, kernel, background)
-    """
+def _nonadaptive_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
+                        gausslist=None):
 
     kh, kw = kernelshape
     if kw % 2 != 1 or kh % 2 != 1:
         print("This can only work with kernels of odd sizes.")
         return None, None, None
 
-    clean_gausslist(gausslist, kernelshape)
+    _clean_gausslist(gausslist, kernelshape)
 
     def has_mask(image):
         is_masked_array = isinstance(image, np.ma.MaskedArray)
@@ -339,20 +321,19 @@ def subtractongrid(image, refimage, gausslist=None, bkgdegree=3,
     stamp_slices = [[asly, aslx] for asly in stamps_y for aslx in stamps_x]
     for ind, ((sly_out, slx_out), (sly_in, slx_in)) in \
             enumerate(zip(recover_slices, stamp_slices)):
-        opti, ki, bgi = optimalkernelandbkg(img_stamps[ind],
+        opti, ki, bgi = _nonadaptive_system(img_stamps[ind],
                                             ref_stamps[ind],
-                                            gausslist,
+                                            kernelshape,
                                             bkgdegree,
-                                            kernelshape)
-
+                                            gausslist)
         subtract_collage[sly_in, slx_in] = \
             (img_stamps[ind] - opti)[sly_out, slx_out]
 
     return subtract_collage
 
 
-def optimal_adaptive_bramich(image, refimage, kernel_side,
-                             poly_degree, bkg_degree):
+def _adaptivebramich_system(image, refimage, kernel_shape,
+                            bkg_degree, poly_degree):
     import varconv
 
     # Check here for dimensions
@@ -371,9 +352,9 @@ def optimal_adaptive_bramich(image, refimage, kernel_side,
     else:
         ref64 = refimage
 
-    k_side = kernel_side
+    k_side = kernel_shape[0]
     k_shape = (k_side, k_side)
-    img_data, ref_data, mask = separate_data_mask(img64, ref64, k_shape)
+    img_data, ref_data, mask = _separate_data_mask(img64, ref64, k_shape)
 
     c_bkg_degree = -1 if bkg_degree is None else bkg_degree
     poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
@@ -418,6 +399,49 @@ def convolve2d_adaptive(image, kernel, poly_degree):
 
     conv = varconv.convolve2d_adaptive(img64, k64, poly_degree)
     return conv
+
+
+def optimal_system(image, refimage, kernel_shape, bkg_degree=3,
+                   method="AdaptiveBramich", *args, **kwargs):
+    """Do Optimal Image Subtraction and return optimal image, kernel
+    and background.
+
+    This is an implementation of a few Optimal Image Subtraction algorithms.
+    They all (optionally) simultaneously fit a background.
+
+    kernelshape: shape of the kernel to use. Must be of odd size.
+
+    bkgdegree: degree of the polynomial to fit the background.
+    To turn off background fitting set this to None.
+
+    method: One of the following strings
+    * Bramich: A Delta basis for the kernel (all pixels fit
+      independently)
+    * AdaptiveBramich: Same as Bramich, but with a polynomial variation across
+      the image.
+      It needs the parameter poly_degree, which is the polynomial degree of the
+      variation.
+    * Alard-Lupton: A modulated multi-Gaussian kernel.
+      It needs the gausslist keyword.
+      gausslist is a list of dictionaries containing data of the gaussians
+      used in the decomposition of the kernel. Dictionary keywords are:
+      center, sx, sy, modPolyDeg
+
+    Extra parameters are passed to the individual methods.
+
+    Return (optimal_image, kernel, background)
+    """
+
+    default_system = adaptivebramich_system # noqa
+    all_strategies = {"AdaptiveBramich": _adaptivebramich_system,
+                      "Bramich": _nonadaptive_system,
+                      "Alard-Lupton": _nonadaptive_system}
+    diff_system = all_strategies.get(method, default_system) # noqa
+
+    opt_image, kernel, background = diff_system(
+        image, refimage, kernel_shape, bkg_degree, *args, **kwargs)
+
+    return opt_image, kernel, background
 
 
 if __name__ == '__main__':
