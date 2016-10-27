@@ -47,11 +47,14 @@ If not provided, it will default to 2.
 Bramich
 -------
 
-If no list of Gaussians is provided, ois will default to use the method for image subtraction developed by Bramich [bramich2010]_.
+If no list of Gaussians is provided, ois will default to use the method for image subtraction developed by 
 
-The method consists on the simultaneous fit of a polynomial background and a convolution kernel.
-Unlike Alard & Lupton method, in Bramich, each pixel of the kernel is left to vary independently
-and nothing is assumed about the general shape of the kernel.
+Bramich [bramich2010]_ modifies Alard-Lupton making each pixel of the kernel an independent parameter to fit.
+This is equivalent as having a vector basis consisting of `Delta kernels`.
+It will also simultaneously fit a polynomial background.
+
+This method does not make assumptions on the kernel shape and can thus model completely arbitrary kernels.
+It can also correct for small translations between the images.
 
 While more accurate, this method is computationally more expensive than Alard & Lupton's.
 
@@ -59,6 +62,25 @@ While more accurate, this method is computationally more expensive than Alard & 
 
   Since each pixel is treated independently, a 11 by 11 kernel will have 121 free parameters just for the kernel. 
   It grows quadratically with the kernel side. This needs to be taken in consideration for large kernels.
+
+
+Adaptive Bramich
+----------------
+
+Like Bramich, this method also treats each pixel independently, 
+but it will also multiply each pixel by a polynomial on the coordinates of the image.
+
+This requires a special type of convolution where the kernel varies point to point in the image.
+
+It is especially suited for situations where the PSF varies significatively across the image.
+
+The method is described in more detail in [miller2008]_.
+
+.. warning::
+
+  Just like Bramich, the number of free parameters scales quadratically with the kernel side.
+  Furthermore, the degree of the polynomial multiplies the number of parameters by (deg + 1) * (deg + 2) / 2.
+  This needs to be taken in consideration for large kernels.
 
 
 Other arguments
@@ -71,3 +93,4 @@ Other arguments
 
 .. [alard1997] "A method for optimal image subtraction" - C. Alard, R. H. Lupton, 1997.
 .. [bramich2010] "A New Algorithm For Difference Image Analysis" - D.M. Bramich, 2010.
+.. [miller2008] "Optimal Image Subtraction Method: Summary Derivations, Applications, and Publicly Shared Application Using IDL" - J. PATRICK MILLER et al., 2008.
