@@ -33,9 +33,9 @@ from scipy import signal
 from scipy import ndimage
 
 
-class SubtractionStrategy:
+class SubtractionStrategy(object):
 
-    def __init__(self, image, refimage, kernelshape, bkg_degree):
+    def __init__(self, image, refimage, kernelshape, bkgdegree):
         self.image = image
         self.refimage = refimage
         # Check here for dimensions
@@ -46,11 +46,18 @@ class SubtractionStrategy:
         if self.image.shape != self.refimage.shape:
             raise ValueError("Images have different shapes")
         self.h, self.w = image.shape
-        self.image_data, self.refimage_data, self.badpixmask =\
-            self.separate_data_mask()
 
         self.k_shape = kernelshape
         self.k_side = kernelshape[0]
+        self.bkgdegree = bkgdegree
+
+        self.image_data, self.refimage_data, self.badpixmask =\
+            self.separate_data_mask()
+
+        self.optimal_image = None
+        self.background = None
+        self.kernel = None
+        self.difference = None
 
     def has_mask(self, image):
         is_masked_array = isinstance(image, np.ma.MaskedArray)
@@ -93,52 +100,41 @@ class SubtractionStrategy:
     def get_cmatrices_background(self):
         h, w = self.refimage.shape
         y, x = np.mgrid[:h, :w]
-        allxs = [pow(x, i) for i in range(self.bkg_degree + 1)]
-        allys = [pow(y, i) for i in range(self.bkg_degree + 1)]
+        allxs = [pow(x, i) for i in range(self.bkgdegree + 1)]
+        allys = [pow(y, i) for i in range(self.bkgdegree + 1)]
         bkg_c = [anX * aY for i, anX in enumerate(allxs)
-                 for aY in allys[:self.bkg_degree + 1 - i]]
+                 for aY in allys[:self.bkgdegree + 1 - i]]
         return bkg_c
 
-    def make_system(self):
-        self.optimal_image = None
-        self.background = None
-        self.kernel = None
+    def make_system():
+        pass
 
     def get_optimal_image(self):
-        try:
-            return self.optimal_image
-        except:
+        if self.optimal_image is None:
             self.make_system()
-            return self.optimal_image
+        return self.optimal_image
 
     def get_background(self):
-        try:
-            return self.background
-        except:
+        if self.background is None:
             self.make_system()
-            return self.background
+        return self.background
 
     def get_kernel(self):
-        try:
-            return self.kernel
-        except:
+        if self.kernel is None:
             self.make_system()
-            return self.kernel
+        return self.kernel
 
     def get_difference(self):
-        try:
-            self.difference = self.image - self.optimal_image
-            return self.difference
-        except:
+        if self.difference is None:
             self.make_system()
-            self.difference = self.image - self.optimal_image
-            return self.difference
+        return self.difference
 
 
 class AlardLuptonStrategy(SubtractionStrategy):
 
-    def __init__(self, image, refimage, kernelshape, bkg_degree, gausslist):
-        self.super.__init__(image, refimage, kernelshape, bkg_degree)
+    def __init__(self, image, refimage, kernelshape, bkgdegree, gausslist):
+        super(AlardLuptonStrategy, self).\
+            __init__(image, refimage, kernelshape, bkgdegree)
         if gausslist is None:
             self.gausslist = [{}]
         else:
@@ -153,7 +149,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
         norm = k.sum()
         return k / norm
 
-    def clean_gausslist(self, kernelshape):
+    def clean_gausslist(self):
         for agauss in self.gausslist:
             if 'center' not in agauss:
                 h, w = self.k_shape
@@ -231,13 +227,10 @@ class AlardLuptonStrategy(SubtractionStrategy):
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
+        self.difference = self.image - self.optimal_image
 
 
 class BramichStrategy(SubtractionStrategy):
-
-    def __init__(self, image, refimage, kernelshape, bkg_degree, grid_shape):
-        self.super.__init__(image, refimage, kernelshape, bkg_degree)
-        # Deal here with the grid
 
     def get_cmatrices(self):
         kh, kw = self.k_shape
@@ -267,7 +260,6 @@ class BramichStrategy(SubtractionStrategy):
         return c
 
     def make_system(self):
-
         c = self.get_cmatrices()
         c_bkg = self.get_cmatrices_background()
         c.extend(c_bkg)
@@ -293,12 +285,15 @@ class BramichStrategy(SubtractionStrategy):
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
+        self.difference = self.image - self.optimal_image
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
-    def __init__(self, image, refimage, kernelshape, bkg_degree, poly_degree):
+    def __init__(self, image, refimage, kernelshape, bkgdegree, poly_degree):
         self.poly_deg = poly_degree
-        self.super.__init__(image, refimage, kernelshape, bkg_degree)
+        self.poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
+        super(AdaptiveBramichStrategy, self).\
+            __init__(image, refimage, kernelshape, bkgdegree)
 
     def make_system(self):
         import varconv
@@ -313,12 +308,12 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         else:
             ref64 = self.refimage_data
 
-        c_bkg_degree = -1 if self.bkg_degree is None else self.bkg_degree
+        c_bkgdegree = -1 if self.bkgdegree is None else self.bkgdegree
         m, b, conv = varconv.gen_matrix_system(img64, ref64,
                                                self.badpixmask is not None,
                                                self.badpixmask,
                                                self.k_side, self.poly_deg,
-                                               c_bkg_degree)
+                                               c_bkgdegree)
         coeffs = np.linalg.solve(m, b)
         poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) / 2
         k_dof = self.k_side * self.k_side * poly_dof
@@ -326,15 +321,18 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
         opt_conv = varconv.convolve2d_adaptive(ref64, self.kernel,
                                                self.poly_deg)
-        if self.bkg_degree is not None:
+        if self.bkgdegree is not None:
             self.background = self.coeffstobackground(coeffs[k_dof:])
-            self.opt_image = opt_conv + self.background
+            self.optimal_image = opt_conv + self.background
         else:
             self.background = np.zeros(self.image.shape)
-            self.opt_image = opt_conv
+            self.optimal_image = opt_conv
 
         if self.badpixmask is not None:
-            self.opt_image = np.ma.array(self.opt_image, mask=self.badpixmask)
+            self.optimal_image = np.ma.array(self.optimal_image,
+                                             mask=self.badpixmask)
+
+        self.difference = self.image - self.optimal_image
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
@@ -360,7 +358,7 @@ def convolve2d_adaptive(image, kernel, poly_degree):
     return conv
 
 
-def optimal_system(image, refimage, kernel_shape=(11, 11), bkg_degree=3,
+def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
                    method="AdaptiveBramich", **kwargs):
     """Do Optimal Image Subtraction and return optimal image, kernel
     and background.
@@ -397,7 +395,7 @@ def optimal_system(image, refimage, kernel_shape=(11, 11), bkg_degree=3,
                       "Alard-Lupton": AlardLuptonStrategy}
     DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
 
-    subt_strat = DiffStrategy(image, refimage, kernel_shape, bkg_degree,
+    subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree,
                               **kwargs)
     opt_image = subt_strat.get_optimal_image()
     kernel = subt_strat.get_kernel()
