@@ -83,14 +83,6 @@ The method is described in more detail in [miller2008]_.
   This needs to be taken in consideration for large kernels.
 
 
-Other arguments
----------------
-
-**bkgdegree:** The degree of the background polynomial to fit. If not provided, it will default to 3.
-
-**kernelshape:** The kernel shape. If not provided, it will default to (11, 11).
-
-
 .. [alard1997] "A method for optimal image subtraction" - C. Alard, R. H. Lupton, 1997.
 .. [bramich2010] "A New Algorithm For Difference Image Analysis" - D.M. Bramich, 2010.
 .. [miller2008] "Optimal Image Subtraction Method: Summary Derivations, Applications, and Publicly Shared Application Using IDL" - J. PATRICK MILLER et al., 2008.

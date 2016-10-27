@@ -16,14 +16,76 @@ The default method for kernel fit is Bramich (2008), which uses the information 
 For more information on other fitting methods, see section :ref:`methods`.
 
 
-Working with masks
-------------------
+optimal_system Parameters
+-------------------------
+
+In addition to the image to be subtracted and the reference image, you can specify several other parameters.
+
+ * image
+    A numpy array with 2 dimensions. It will be the image to be subtracted from.
+
+ * refimage
+    A numpy array with 2 dimensions. It will be the reference image to make it match *image*.
+
+ * kernelshape
+    The shape of the kernel as a row, colums tuple. Default is (11, 11).
+
+ * bkgdegree
+    The degree of the polynomial fit to the background. Default is 3.
+    To turn off background fitting set this one to None.
+
+ * method
+    A string containing one of the following: "Alard-Lupton", "Bramich" or "AdaptiveBramich".
+    Default is "Bramich"
+
+ * poly_degree
+    *This has to be supplied only for the Adaptive Bramich method*.
+
+    It is the degree of the polynomial variation of the kernel across the image.
+
+ * gausslist
+    *This has to be supplied only for the Alard-Lupton method*.
+    
+    A list of dictionaries containing info about the Gaussians and modulating polynomial used in the multi-Gaussian fit.
+    For each gaussian we want to use, we need the following keys (Not all the keys need to be present):
+
+    **center:**
+        the pixel x, y coordinates of the center relative to the kernel origin (column=0, row=0).
+        For a 11 rows by 13 columns kernel, the center of the kernel would be at x, y = (6, 5)
+        If not provided, ois will assume the kernel center calculated from its shape.
+
+    **sx:**
+        sigma in the x direction
+
+    **sy:**
+        sigma in the y direction
+
+    **modPolyDeg:**
+        The degree of the modulating polynomial.
+        If not provided, it will default to 2.
+
+Below is an example of a gausslist::
+
+    gausslist = [{center: (5, 5),
+                  sx: 2.
+                  sy: 2.
+                  modPolyDeg: 3},
+                 {sx: 1.0
+                  sy: 2.5
+                  modPolyDeg: 1},
+                 {sx: 3.0
+                  sy: 1.0},
+                ]
+
+
+Working with bad pixels (masks)
+-------------------------------
 
 If your reference image or test image have bad sections of pixels, it can distort the kernel estimation.
 This is especially true when the fitting algorithm uses all the pixels in the image.
 Saturated stars can also confuse the fit of the convolution kernel.
 
-To let ois know which pixels are good, you can create a numpy masked array, with True on bad pixels.
+To let *ois* know which pixels are good, you can create a numpy masked array, with True on bad pixels.
 The ois subtraction methods will ignore completely the information on those bad pixels.
 
 The returned image, will have a combined OR mask from the mask in test_image and the mask on refimage expanded to exclude pixels that would have used defective pixels in the convolution.
@@ -36,11 +98,17 @@ Non-constant PSF
 
 When the image has a large field of view or lens defects, the PSF won't be constant across the CCD.
 
-In this case you may want to section your CCD into smaller regions on a grid:
+In this case you may want to use AdaptiveBramich method, which tries to correct for kernel spatial variation.
+
+Another solution is to section your CCD into smaller regions on a grid and apply subtraction on each grid section.
+
+OIS offers an utility to apply image subtraction on each subsection, that also takes care of border issues.
+It uses a little bit of padding at the section boundaries for the convolution, when possible.
 
     >>> diff = subtractongrid(test_image, refimage, gridshape=(3, 2))
 
-This method will divide test_image into 3 rows and 2 columns and apply optimalkernelandbkg on each grid section.
-gridshape follows the same numpy shape convention.
+This method will divide test_image into 3 rows and 2 columns and apply optimal_system on each grid section.
 
-It uses a little bit of padding at the section boundaries for the convolution, when possible.
+*gridshape* is a tuple with rows, columns. Default is (2, 2).
+
+It accepts all the other parameters in *optimal_system*.
