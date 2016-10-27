@@ -4,20 +4,17 @@ Usage
 If your image has a relatively narrow field of view, and your PSF doesn't change significatively across the field,
 you can use the method optimalkernelandbkg::
 
-    >>> optimal_image, kernel, background = optimalkernelandbkg(test_image, refimage)
+    >>> diff_image, optimal_image, kernel, background = ois.optimal_system(test_image, refimage)
 
 Here test_image is the image we want to analize and refimage is an archive or reference image from the same location in the sky, previously aligned with test_image.
 
-This will return the optimal_image, which is the convolution of refimage with a proper convolution kernel and
+This will return the difference image and the optimal_image, which is the convolution of refimage with a proper convolution kernel and
 background fit so that optimal_image be as close to test_image as possible.
+The kernel and the background that minimized the difference between test_image and optimal_image are also returned as reference.
+
 The default method for kernel fit is Bramich (2008), which uses the information of all pixels in the image and fits for every pixel in the convolution kernel independently.
 For more information on other fitting methods, see section :ref:`methods`.
 
-It's also provided the kernel and background that minimized the difference between test_image and optimal_image.
-
-The next step is just subtracting optimal_image from test_image::
-
-    >>> diff = test_image - optimal_image
 
 Working with masks
 ------------------
@@ -32,6 +29,7 @@ The ois subtraction methods will ignore completely the information on those bad 
 The returned image, will have a combined OR mask from the mask in test_image and the mask on refimage expanded to exclude pixels that would have used defective pixels in the convolution.
 
 If no mask is provided in both test_image and refimage, the returned image will be a numpy array (no mask).
+
 
 Non-constant PSF
 ----------------
