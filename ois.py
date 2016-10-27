@@ -406,7 +406,7 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
 
 
 def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
-                   gridshape=(2, 2), method="AdaptiveBramich", **kwargs):
+                   gridshape=(2, 2), method="Bramich", **kwargs):
     """Implement Optimal Image Subtraction on a grid and return the optimal
     subtraction
 
@@ -437,7 +437,7 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     h, w = image.shape
     kh, kw = kernelshape
 
-    DefaultStrategy = AdaptiveBramichStrategy # noqa
+    DefaultStrategy = BramichStrategy # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
                       "Bramich": BramichStrategy,
                       "Alard-Lupton": AlardLuptonStrategy}
