@@ -169,7 +169,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertTrue(isinstance(b, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_bramich_rmi(self):
         # Test Bramich image not masked, ref masked
@@ -183,7 +183,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertTrue(isinstance(b, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_bramich_rim(self):
         # Test Bramich image masked, ref not masked
@@ -197,7 +197,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertTrue(isinstance(b, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_ri(self):
         # Test Alard & Lupton without masks:
@@ -227,7 +227,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertTrue(isinstance(b, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_rim(self):
         # Test Alard & Lupton, image masked, ref not masked
@@ -242,7 +242,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertTrue(isinstance(b, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_rmi(self):
         # Test Alard & Lupton, image not masked, ref masked
@@ -257,7 +257,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertTrue(isinstance(b, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_adaptive_ri(self):
         deg = 2
@@ -273,8 +273,7 @@ class TestSubtract(unittest.TestCase):
                                                gridshape=(1, 1),
                                                method="AdaptiveBramich",
                                                poly_degree=deg)
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(image)
+        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(image)
         self.assertLess(norm_diff, 1E-10)
         self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
         self.assertFalse(isinstance(o, np.ma.MaskedArray))

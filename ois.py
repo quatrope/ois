@@ -33,6 +33,13 @@ from scipy import signal
 from scipy import ndimage
 
 
+def _has_mask(image):
+    is_masked_array = isinstance(image, np.ma.MaskedArray)
+    if is_masked_array and isinstance(image.mask, np.ndarray):
+        return True
+    return False
+
+
 class SubtractionStrategy(object):
 
     def __init__(self, image, refimage, kernelshape, bkgdegree):
@@ -59,12 +66,6 @@ class SubtractionStrategy(object):
         self.kernel = None
         self.difference = None
 
-    def has_mask(self, image):
-        is_masked_array = isinstance(image, np.ma.MaskedArray)
-        if is_masked_array and isinstance(image.mask, np.ndarray):
-            return True
-        return False
-
     def separate_data_mask(self):
         def ret_data(image):
             if isinstance(image, np.ma.MaskedArray):
@@ -73,13 +74,13 @@ class SubtractionStrategy(object):
                 image_data = image
             return image_data
         badpixmask = None
-        if self.has_mask(self.refimage):
+        if _has_mask(self.refimage):
             badpixmask = ndimage.binary_dilation(
                 self.refimage.mask.astype('uint8'),
                 structure=np.ones(self.k_shape)).astype('bool')
-            if self.has_mask(self.image):
+            if _has_mask(self.image):
                 badpixmask += self.image.mask
-        elif self.has_mask(self.image):
+        elif _has_mask(self.image):
             badpixmask = self.image.mask
         return ret_data(self.image), ret_data(self.refimage), badpixmask
 
@@ -401,7 +402,6 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     kernel = subt_strat.get_kernel()
     background = subt_strat.get_background()
     difference = subt_strat.get_difference()
-
     return difference, opt_image, kernel, background
 
 
@@ -481,9 +481,13 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
             recover_slices.append([sly, slx])
 
     # Here do the subtraction on each stamp
-    optimal_collage = np.ma.empty(image.shape)
-    bkg_collage = np.ma.empty(image.shape)
-    subtract_collage = np.ma.empty(image.shape)
+    if _has_mask(image) or _has_mask(refimage):
+        optimal_collage = np.ma.empty(image.shape)
+        subtract_collage = np.ma.empty(image.shape)
+    else:
+        optimal_collage = np.empty(image.shape)
+        subtract_collage = np.empty(image.shape)
+    bkg_collage = np.empty(image.shape)
     kernel_collage = []
     stamp_slices = [[asly, aslx] for asly in stamps_y for aslx in stamps_x]
     for ind, ((sly_out, slx_out), (sly_in, slx_in)) in \
