@@ -109,6 +109,9 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(ruined_image - self.image) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
+        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
 
     def test_optimal_system_alardlp(self):
         # Test Alard & Lupton
@@ -121,20 +124,41 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(ruined_image - self.image) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
+        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
+
+    def test_optimal_system_alardlp_masks(self):
+        # Test Alard & Lupton
+        diff, ruined_image, optKernel, bkg = ois.optimal_system(
+            self.image_masked, self.ref_img_masked,
+            kernelshape=(11, 11),
+            bkgdegree=self.bkgdeg,
+            method="Alard-Lupton",
+            gausslist=self.mygausslist)
+        norm_diff = np.linalg.norm(diff.compressed()) \
+            / np.linalg.norm(self.image_masked.compressed())
+        self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
+        self.assertTrue(isinstance(ruined_image, np.ma.MaskedArray))
+        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
 
     def test_subtractongrid_bramich_ri(self):
         # Test Bramich without masks:
-        subt_img, _, _, _ = ois.subtractongrid(self.image, self.ref_img,
+        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
                                                method="Bramich")
         norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+        self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertFalse(isinstance(o, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_bramich_rmim(self):
         # Test Bramich, image masked, ref masked
-        subt_img, _, _, _ = ois.subtractongrid(self.image_masked,
+        subt_img, o, k, b = ois.subtractongrid(self.image_masked,
                                                self.ref_img_masked,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
@@ -143,10 +167,13 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertTrue(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_bramich_rmi(self):
         # Test Bramich image not masked, ref masked
-        subt_img, _, _, _ = ois.subtractongrid(self.image, self.ref_img_masked,
+        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img_masked,
                                                bkgdegree=self.bkgdeg,
                                                kernelshape=(11, 11),
                                                gridshape=(1, 1),
@@ -154,10 +181,13 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertTrue(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_bramich_rim(self):
         # Test Bramich image masked, ref not masked
-        subt_img, _, _, _ = ois.subtractongrid(self.image_masked, self.ref_img,
+        subt_img, o, k, b = ois.subtractongrid(self.image_masked, self.ref_img,
                                                bkgdegree=self.bkgdeg,
                                                kernelshape=(11, 11),
                                                gridshape=(1, 1),
@@ -165,10 +195,13 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertTrue(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_ri(self):
         # Test Alard & Lupton without masks:
-        subt_img, _, _, _ = ois.subtractongrid(self.image, self.ref_img,
+        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -176,10 +209,13 @@ class TestSubtract(unittest.TestCase):
                                                gausslist=self.mygausslist)
         norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+        self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertFalse(isinstance(o, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_rmim(self):
         # Test Alard & Lupton, image masked, ref masked
-        subt_img, _, _, _ = ois.subtractongrid(self.image_masked,
+        subt_img, o, k, b = ois.subtractongrid(self.image_masked,
                                                self.ref_img_masked,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
@@ -189,10 +225,13 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertTrue(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_rim(self):
         # Test Alard & Lupton, image masked, ref not masked
-        subt_img, _, _, _ = ois.subtractongrid(self.image_masked, self.ref_img,
+        subt_img, o, k, b = ois.subtractongrid(self.image_masked, self.ref_img,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -201,10 +240,13 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertTrue(isinstance(b, np.ma.MaskedArray))
 
     def test_subtractongrid_alardlp_rmi(self):
         # Test Alard & Lupton, image not masked, ref masked
-        subt_img, _, _, _ = ois.subtractongrid(self.image, self.ref_img_masked,
+        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img_masked,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -213,8 +255,11 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertTrue(isinstance(b, np.ma.MaskedArray))
 
-    def test_subtractongrid_adaptive(self):
+    def test_subtractongrid_adaptive_ri(self):
         deg = 2
         bkg_deg = None
         k_side = 3
@@ -222,14 +267,18 @@ class TestSubtract(unittest.TestCase):
         pol_dof = (deg + 1) * (deg + 2) / 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-        diff, opt_ref, k, b = ois.subtractongrid(image, self.ref_img,
-                                                 kernelshape=k_shape,
-                                                 bkgdegree=bkg_deg,
-                                                 gridshape=(1, 1),
-                                                 method="AdaptiveBramich",
-                                                 poly_degree=deg)
-        self.assertLess(np.linalg.norm(opt_ref - image, ord=np.inf) /
-                        np.linalg.norm(image, ord=np.inf), 1E-8)
+        subt_img, o, k, b = ois.subtractongrid(image, self.ref_img,
+                                               kernelshape=k_shape,
+                                               bkgdegree=bkg_deg,
+                                               gridshape=(1, 1),
+                                               method="AdaptiveBramich",
+                                               poly_degree=deg)
+        norm_diff = np.linalg.norm(subt_img.compressed()) \
+            / np.linalg.norm(image)
+        self.assertLess(norm_diff, 1E-10)
+        self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertFalse(isinstance(o, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_convolve2d_adaptive_checks(self):
         bad_shape_kernel = np.random.random((3, 3))
