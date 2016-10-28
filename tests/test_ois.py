@@ -279,6 +279,26 @@ class TestSubtract(unittest.TestCase):
         self.assertFalse(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
+    def test_subtractongrid_adaptive_rmi(self):
+        deg = 2
+        bkg_deg = None
+        k_side = 3
+        k_shape = (k_side, k_side)
+        pol_dof = (deg + 1) * (deg + 2) / 2
+        kernel = np.random.random((k_side, k_side, pol_dof))
+        image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
+        subt_img, o, k, b = ois.subtractongrid(image, self.ref_img_masked,
+                                               kernelshape=k_shape,
+                                               bkgdegree=bkg_deg,
+                                               gridshape=(1, 1),
+                                               method="AdaptiveBramich",
+                                               poly_degree=deg)
+        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(image)
+        self.assertLess(norm_diff, 1E-10)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        self.assertTrue(isinstance(o, np.ma.MaskedArray))
+        self.assertFalse(isinstance(b, np.ma.MaskedArray))
+
     def test_convolve2d_adaptive_checks(self):
         bad_shape_kernel = np.random.random((3, 3))
         bad_shape_image = np.random.random((100, ))
