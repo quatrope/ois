@@ -398,8 +398,20 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
       center, sx, sy, modPolyDeg
 
     Extra parameters are passed to the individual methods.
+    poly_degree: needed only for AdaptiveBramich. It is the degree
+    of the polynomial for the kernel spatial variation.
 
-    Return (optimal_image, kernel, background)
+    gausslist: needed only for Alard-Lupton. A list of dictionaries with info
+    for the modulated multi-Gaussian.
+        Dictionary keys are:
+        center: an (row, column) tuple for the center of the Gaussian.
+            Default: kernel center.
+        modPolyDeg: the degree of the modulating polynomial. Default: 2
+        sx: sigma in x direction. Default: 2.
+        sy: sigma in y direction. Deafult: 2.
+        All keys are optional.
+
+    Return (difference, optimal_image, kernel, background)
     """
 
     DefaultStrategy = AdaptiveBramichStrategy # noqa
@@ -419,31 +431,46 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
 
 def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
                    gridshape=(2, 2), method="Bramich", **kwargs):
-    """Implement Optimal Image Subtraction on a grid and return the optimal
-    subtraction
+    """This implements optimal_system on each section of a grid on the image.
 
-    This is an implementation of the Optimal Image Subtraction algorith of
-    Alard&Lupton(1998) and Bramich(2010)
-    It returns the optimal subtraction between image and refimage.
-
-    gausslist is a list of dictionaries containing data of the gaussians
-    used in the multigaussian decomposition of the kernel [Alard&Lupton, 1998].
-    Dictionary keywords are:
-    center, sx, sy, modPolyDeg
-
-    If gausslist is None (default value), the OIS will try to optimize the
-    value of each pixel in the kernel [Bramich, 2010].
-
-    bkgdegree is the degree of the polynomial to fit the background.
-
-    kernelshape is the shape of the kernel to use.
-
-    gridshape is a tuple containing the number of vertical and horizontal
+    The parameters are the same as for optimal_system except for
+    gridshape: a tuple containing the number of vertical and horizontal
     divisions of the grid.
+    (This method does not interpolate between the grids.)
 
-    This method does not interpolate between the grids.
+    kernelshape: shape of the kernel to use. Must be of odd size.
 
-    Return (subtraction_array)
+    bkgdegree: degree of the polynomial to fit the background.
+    To turn off background fitting set this to None.
+
+    method: One of the following strings
+    * Bramich: A Delta basis for the kernel (all pixels fit
+      independently)
+    * AdaptiveBramich: Same as Bramich, but with a polynomial variation across
+      the image.
+      It needs the parameter poly_degree, which is the polynomial degree of the
+      variation.
+    * Alard-Lupton: A modulated multi-Gaussian kernel.
+      It needs the gausslist keyword.
+      gausslist is a list of dictionaries containing data of the gaussians
+      used in the decomposition of the kernel. Dictionary keywords are:
+      center, sx, sy, modPolyDeg
+
+    Extra parameters are passed to the individual methods.
+    poly_degree: needed only for AdaptiveBramich. It is the degree
+    of the polynomial for the kernel spatial variation.
+
+    gausslist: needed only for Alard-Lupton. A list of dictionaries with info
+    for the modulated multi-Gaussian.
+        Dictionary keys are:
+        center: an (row, column) tuple for the center of the Gaussian.
+            Default: kernel center.
+        modPolyDeg: the degree of the modulating polynomial. Default: 2
+        sx: sigma in x direction. Default: 2.
+        sy: sigma in y direction. Deafult: 2.
+        All keys are optional.
+
+    Return (difference, optimal_image, kernel, background)
     """
     ny, nx = gridshape
     h, w = image.shape
