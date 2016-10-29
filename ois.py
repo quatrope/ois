@@ -404,7 +404,7 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     gausslist: needed only for Alard-Lupton. A list of dictionaries with info
     for the modulated multi-Gaussian.
         Dictionary keys are:
-        center: an (row, column) tuple for the center of the Gaussian.
+        center: a (row, column) tuple for the center of the Gaussian.
             Default: kernel center.
         modPolyDeg: the degree of the modulating polynomial. Default: 2
         sx: sigma in x direction. Default: 2.
@@ -463,7 +463,7 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     gausslist: needed only for Alard-Lupton. A list of dictionaries with info
     for the modulated multi-Gaussian.
         Dictionary keys are:
-        center: an (row, column) tuple for the center of the Gaussian.
+        center: a (row, column) tuple for the center of the Gaussian.
             Default: kernel center.
         modPolyDeg: the degree of the modulating polynomial. Default: 2
         sx: sigma in x direction. Default: 2.
