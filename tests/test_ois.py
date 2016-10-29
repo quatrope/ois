@@ -136,10 +136,10 @@ class TestSubtract(unittest.TestCase):
             bkgdegree=self.bkgdeg,
             method="Alard-Lupton",
             gausslist=self.mygausslist)
+        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(diff.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
         self.assertTrue(isinstance(ruined_image, np.ma.MaskedArray))
         self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
 
@@ -164,10 +164,10 @@ class TestSubtract(unittest.TestCase):
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
                                                method="Bramich")
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
@@ -178,10 +178,10 @@ class TestSubtract(unittest.TestCase):
                                                kernelshape=(11, 11),
                                                gridshape=(1, 1),
                                                method="Bramich")
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
@@ -192,10 +192,10 @@ class TestSubtract(unittest.TestCase):
                                                kernelshape=(11, 11),
                                                gridshape=(1, 1),
                                                method="Bramich")
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
@@ -222,10 +222,10 @@ class TestSubtract(unittest.TestCase):
                                                gridshape=(1, 1),
                                                method="Alard-Lupton",
                                                gausslist=self.mygausslist)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
@@ -237,10 +237,10 @@ class TestSubtract(unittest.TestCase):
                                                gridshape=(1, 1),
                                                method="Alard-Lupton",
                                                gausslist=self.mygausslist)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image_masked.compressed())
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
@@ -252,10 +252,10 @@ class TestSubtract(unittest.TestCase):
                                                gridshape=(1, 1),
                                                method="Alard-Lupton",
                                                gausslist=self.mygausslist)
+        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         norm_diff = np.linalg.norm(subt_img.compressed()) \
             / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
@@ -293,9 +293,10 @@ class TestSubtract(unittest.TestCase):
                                                gridshape=(1, 1),
                                                method="AdaptiveBramich",
                                                poly_degree=deg)
-        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(image)
-        self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
+        norm_diff = np.linalg.norm(subt_img.compressed())\
+            / np.linalg.norm(image)
+        self.assertLess(norm_diff, 1E-10)
         self.assertTrue(isinstance(o, np.ma.MaskedArray))
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
