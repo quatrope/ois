@@ -106,8 +106,7 @@ class TestSubtract(unittest.TestCase):
         diff, ruined_image, optKernel, bkg = ois.optimal_system(
             self.image, self.ref_img, kernelshape=(11, 11),
             bkgdegree=self.bkgdeg, method="Bramich")
-        norm_diff = np.linalg.norm(ruined_image - self.image) \
-            / np.linalg.norm(self.image)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
         self.assertFalse(isinstance(diff, np.ma.MaskedArray))
         self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
@@ -121,8 +120,21 @@ class TestSubtract(unittest.TestCase):
             bkgdegree=self.bkgdeg,
             method="Alard-Lupton",
             gausslist=self.mygausslist)
-        norm_diff = np.linalg.norm(ruined_image - self.image) \
-            / np.linalg.norm(self.image)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-10)
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
+        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
+
+    def test_optimal_system_adaptivebramich(self):
+        # Test Adaptive Bramich
+        diff, ruined_image, optKernel, bkg = ois.optimal_system(
+            self.image, self.ref_img,
+            kernelshape=(11, 11),
+            bkgdegree=self.bkgdeg,
+            method="AdaptiveBramich",
+            poly_degree=2)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-10)
         self.assertFalse(isinstance(diff, np.ma.MaskedArray))
         self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
@@ -312,6 +324,36 @@ class TestSubtract(unittest.TestCase):
 
         ois.convolve2d_adaptive(self.ref_img.astype('int32'), kernel, 0)
         ois.convolve2d_adaptive(self.ref_img, kernel.astype('int32'), 0)
+
+    def test_no_background(self):
+        diff, ruined_image, optKernel, bkg = ois.optimal_system(
+            self.image, self.ref_img,
+            kernelshape=(11, 11),
+            bkgdegree=None,
+            method="Alard-Lupton",
+            gausslist=self.mygausslist)
+        self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-2)
+
+        diff, ruined_image, optKernel, bkg = ois.optimal_system(
+            self.image, self.ref_img,
+            kernelshape=(11, 11),
+            bkgdegree=None,
+            method="Bramich")
+        self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-2)
+
+        diff, ruined_image, optKernel, bkg = ois.optimal_system(
+            self.image, self.ref_img,
+            kernelshape=(11, 11),
+            bkgdegree=None,
+            method="AdaptiveBramich",
+            poly_degree=1)
+        self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
+        self.assertLess(norm_diff, 1E-2)
 
 
 class TestVarConv(unittest.TestCase):

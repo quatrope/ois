@@ -201,8 +201,9 @@ class AlardLuptonStrategy(SubtractionStrategy):
     def make_system(self):
 
         c = self.get_cmatrices()
-        c_bkg = self.get_cmatrices_background()
-        c.extend(c_bkg)
+        if self.bkgdegree is not None:
+            c_bkg = self.get_cmatrices_background()
+            c.extend(c_bkg)
 
         if self.badpixmask is None:
             m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
@@ -221,9 +222,14 @@ class AlardLuptonStrategy(SubtractionStrategy):
             nkcoeffs += n * (n + 1) // 2
 
         self.kernel = self.coeffstokernel(coeffs[:nkcoeffs])
-        self.background = self.coeffstobackground(coeffs[nkcoeffs:])
-        opt_image = signal.convolve2d(
-            self.refimage_data, self.kernel, mode='same') + self.background
+        opt_image = signal.convolve2d(self.refimage_data, self.kernel,
+                                      mode='same')
+        if self.bkgdegree is not None:
+            self.background = self.coeffstobackground(coeffs[nkcoeffs:])
+            opt_image += self.background
+        else:
+            self.background = np.zeros(self.image.shape)
+
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
         else:
@@ -262,8 +268,9 @@ class BramichStrategy(SubtractionStrategy):
 
     def make_system(self):
         c = self.get_cmatrices()
-        c_bkg = self.get_cmatrices_background()
-        c.extend(c_bkg)
+        if self.bkgdegree is not None:
+            c_bkg = self.get_cmatrices_background()
+            c.extend(c_bkg)
 
         if self.badpixmask is None:
             m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
@@ -279,9 +286,14 @@ class BramichStrategy(SubtractionStrategy):
         kh, kw = self.k_shape
         nkcoeffs = kh * kw
         self.kernel = coeffs[:nkcoeffs].reshape(self.k_shape)
-        self.background = self.coeffstobackground(coeffs[nkcoeffs:])
-        opt_image = signal.convolve2d(
-            self.refimage_data, self.kernel, mode='same') + self.background
+        opt_image = signal.convolve2d(self.refimage_data, self.kernel,
+                                      mode='same')
+        if self.bkgdegree is not None:
+            self.background = self.coeffstobackground(coeffs[nkcoeffs:])
+            opt_image += self.background
+        else:
+            self.background = np.zeros(self.image.shape)
+
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
         else:
