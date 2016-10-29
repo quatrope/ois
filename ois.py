@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.1.1.dev0'
+__version__ = '0.1.1'
 
 import numpy as np
 from scipy import signal
