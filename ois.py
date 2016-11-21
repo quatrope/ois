@@ -372,7 +372,7 @@ def convolve2d_adaptive(image, kernel, poly_degree):
 
 
 def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
-                   method="AdaptiveBramich", **kwargs):
+                   method="AdaptiveBramich", poly_degree=2, **kwargs):
     """Do Optimal Image Subtraction and return optimal image, kernel
     and background.
 
@@ -421,7 +421,7 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
 
     subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree,
-                              **kwargs)
+                              poly_degree, **kwargs)
     opt_image = subt_strat.get_optimal_image()
     kernel = subt_strat.get_kernel()
     background = subt_strat.get_background()
