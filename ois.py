@@ -302,7 +302,7 @@ class BramichStrategy(SubtractionStrategy):
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
-    def __init__(self, image, refimage, kernelshape, bkgdegree, poly_degree):
+    def __init__(self, image, refimage, kernelshape, bkgdegree, poly_degree=2):
         self.poly_deg = poly_degree
         self.poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
         super(AdaptiveBramichStrategy, self).\
