@@ -355,6 +355,17 @@ class TestSubtract(unittest.TestCase):
         norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-2)
 
+    def test_oddside_kernel(self):
+        bad_shape_kernel = (8, 9)
+        with self.assertRaises(ois.EvenSideKernelError):
+            ois.optimal_system(self.image, self.ref_img, bad_shape_kernel)
+        bad_shape_kernel = (9, 8)
+        with self.assertRaises(ois.EvenSideKernelError):
+            ois.optimal_system(self.image, self.ref_img, bad_shape_kernel)
+        bad_shape_kernel = (8, 8)
+        with self.assertRaises(ois.EvenSideKernelError):
+            ois.optimal_system(self.image, self.ref_img, bad_shape_kernel)
+
 
 class TestVarConv(unittest.TestCase):
 

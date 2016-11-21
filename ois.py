@@ -33,6 +33,10 @@ from scipy import signal
 from scipy import ndimage
 
 
+class EvenSideKernelError(ValueError):
+    pass
+
+
 def _has_mask(image):
     is_masked_array = isinstance(image, np.ma.MaskedArray)
     if is_masked_array and isinstance(image.mask, np.ndarray):
@@ -414,6 +418,11 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     Return (difference, optimal_image, kernel, background)
     """
 
+    kh, kw = kernelshape
+
+    if (kw % 2 == 0) or (kh % 2 == 0):
+        raise EvenSideKernelError("Kernel sides must be odd.")
+
     DefaultStrategy = BramichStrategy # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
                       "Bramich": BramichStrategy,
@@ -475,6 +484,9 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     ny, nx = gridshape
     h, w = image.shape
     kh, kw = kernelshape
+
+    if (kw % 2 == 0) or (kh % 2 == 0):
+        raise EvenSideKernelError("Kernel sides must be odd.")
 
     DefaultStrategy = BramichStrategy # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
