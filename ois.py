@@ -372,7 +372,7 @@ def convolve2d_adaptive(image, kernel, poly_degree):
 
 
 def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
-                   method="AdaptiveBramich", **kwargs):
+                   method="Bramich", **kwargs):
     """Do Optimal Image Subtraction and return optimal image, kernel
     and background.
 
@@ -414,7 +414,7 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     Return (difference, optimal_image, kernel, background)
     """
 
-    DefaultStrategy = AdaptiveBramichStrategy # noqa
+    DefaultStrategy = BramichStrategy # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
                       "Bramich": BramichStrategy,
                       "Alard-Lupton": AlardLuptonStrategy}
