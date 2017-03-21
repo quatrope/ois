@@ -5,7 +5,7 @@ varconv = Extension('varconv', sources=['src/varconv.c'],
                     extra_compile_args=["-std=c99"])
 
 setup(name='ois',
-      version='0.1.1',
+      version='0.1.2',
       description='Optimal Image Subtraction',
       author='Martin Beroiz',
       author_email='martinberoiz@gmail.com',
