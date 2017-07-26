@@ -149,7 +149,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
     def gauss(self, center, sx, sy):
         h, w = self.k_shape
         x0, y0 = center
-        x, y = np.meshgrid(range(w), range(h))
+        x, y = np.meshgrid(list(range(w)), list(range(h)))
         k = np.exp(-0.5 * ((x - x0) ** 2 / sx ** 2 + (y - y0) ** 2 / sy ** 2))
         norm = k.sum()
         return k / norm
