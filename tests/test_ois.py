@@ -16,7 +16,7 @@ class TestSubtract(unittest.TestCase):
         # Make also the masked versions
         mask = np.zeros(self.image.shape, dtype='bool')
         h, w = mask.shape
-        mask[h / 10:h / 10 + 10, w / 10: w / 10 + 10] = True
+        mask[h // 10:h // 10 + 10, w // 10: w // 10 + 10] = True
         mask[:, 50:60] = True
         self.image_masked = np.ma.array(self.image, mask=mask)
 

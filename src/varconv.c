@@ -3,6 +3,10 @@
 //#include <numpy/ndarrayobject.h>
 #include <numpy/arrayobject.h>
 
+#if PY_MAJOR_VERSION >= 3
+#define PY3
+#endif
+
 double multiply_and_sum(int nsize, double* C1, double* C2);
 double multiply_and_sum_mask(int nsize, double* C1, double* C2, char* mask);
 void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refimage, double* Conv);
@@ -38,7 +42,7 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     } else {
         mask = NULL;
     }
-    
+
     int kernel_size = k_side * k_side;
     int img_size = n * m;
     int poly_degree = (deg + 1) * (deg + 2) / 2;
@@ -167,12 +171,32 @@ static PyMethodDef VarConvMethods[] = {
 };
 
 
+#ifdef PY3
+static struct PyModuleDef varconvmodule = {
+   PyModuleDef_HEAD_INIT,
+   "varconv",   /* name of module */
+   NULL, /* module documentation, may be NULL */
+   -1,       /* size of per-interpreter state of the module,
+                or -1 if the module keeps state in global variables. */
+   VarConvMethods
+};
+
+PyMODINIT_FUNC
+PyInit_varconv(void)
+{
+    PyObject *m;
+    m = PyModule_Create(&varconvmodule);
+    import_array();
+    return m;
+}
+#else
 PyMODINIT_FUNC
 initvarconv(void)
 {
     (void) Py_InitModule("varconv", VarConvMethods);
     import_array();
 }
+#endif
 
 double multiply_and_sum(int nsize, double* C1, double* C2) {
     double result = 0.0;
@@ -205,7 +229,7 @@ void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refim
             for (int exp_x = 0; exp_x <= deg; exp_x++) {
                 for (int exp_y = 0; exp_y <= deg - exp_x; exp_y++) {
                     double* Conv_pqkl = Conv_pq + exp_index * img_size;
-                    
+
                     for (int conv_row = 0; conv_row < n; ++conv_row) {
                         for (int conv_col = 0; conv_col < m; ++conv_col) {
                             int conv_index = conv_row * m + conv_col;
@@ -220,11 +244,11 @@ void fill_c_matrices_for_kernel(int k_side, int deg, int n, int m, double* refim
                             }
                         } // conv_col
                     } // conv_row
-                    
+
                     exp_index++;
                 } // exp_y
             } // exp_x
-            
+
         } //q
     } // p
 
@@ -238,7 +262,7 @@ void fill_c_matrices_for_background(int n, int m, int bkg_deg, double* Conv_bkg)
         for (int exp_y = 0; exp_y <= bkg_deg - exp_x; exp_y++) {
 
             double* Conv_xy = Conv_bkg + exp_index * n * m;
-            
+
             for (int conv_row = 0; conv_row < n; ++conv_row) {
                 for (int conv_col = 0; conv_col < m; ++conv_col) {
                     int conv_index = conv_row * m + conv_col;
@@ -248,10 +272,10 @@ void fill_c_matrices_for_background(int n, int m, int bkg_deg, double* Conv_bkg)
                     Conv_xy[conv_index] = x_pow * y_pow;
                 } // conv_col
             } // conv_row
-            
+
             exp_index++;
         } // exp_y
     } // exp_x
 
-    return;   
+    return;
 }
