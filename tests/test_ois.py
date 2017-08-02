@@ -276,7 +276,7 @@ class TestSubtract(unittest.TestCase):
         bkg_deg = None
         k_side = 3
         k_shape = (k_side, k_side)
-        pol_dof = (deg + 1) * (deg + 2) / 2
+        pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
         subt_img, o, k, b = ois.subtractongrid(image, self.ref_img,
@@ -296,7 +296,7 @@ class TestSubtract(unittest.TestCase):
         bkg_deg = None
         k_side = 3
         k_shape = (k_side, k_side)
-        pol_dof = (deg + 1) * (deg + 2) / 2
+        pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
         subt_img, o, k, b = ois.subtractongrid(image, self.ref_img_masked,
@@ -378,8 +378,8 @@ class TestVarConv(unittest.TestCase):
         refimage = image.copy()
         mm, b, c = varconv.gen_matrix_system(image, refimage, 0, None,
                                              k_side, deg, bkg_deg)
-        pol_dof = (deg + 1) * (deg + 2) / 2
-        bkg_dof = (bkg_deg + 1) * (bkg_deg + 2) / 2
+        pol_dof = (deg + 1) * (deg + 2) // 2
+        bkg_dof = (bkg_deg + 1) * (bkg_deg + 2) // 2
         k_size = k_side * k_side
         m_dof = pol_dof * k_size + bkg_dof
         self.assertEqual(mm.shape, (m_dof, m_dof))
@@ -430,7 +430,7 @@ class TestVarConv(unittest.TestCase):
     def test_convolve2d_adaptive_undoing(self):
         deg = 2
         k_side = 3
-        pol_dof = (deg + 1) * (deg + 2) / 2
+        pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         refimage = np.random.random((10, 10))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
@@ -454,7 +454,7 @@ class TestVarConv(unittest.TestCase):
         # degrade reference
         deg = 2
         k_side = 3
-        pol_dof = (deg + 1) * (deg + 2) / 2
+        pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
@@ -478,7 +478,7 @@ class TestVarConv(unittest.TestCase):
         # degrade reference
         deg = 2
         k_side = 3
-        pol_dof = (deg + 1) * (deg + 2) / 2
+        pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 

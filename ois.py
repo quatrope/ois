@@ -158,7 +158,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
         for agauss in self.gausslist:
             if 'center' not in agauss:
                 h, w = self.k_shape
-                agauss['center'] = ((h - 1) / 2., (w - 1) / 2.)
+                agauss['center'] = ((h - 1) // 2., (w - 1) // 2.)
             if 'modPolyDeg' not in agauss:
                 agauss['modPolyDeg'] = 2
             if 'sx' not in agauss:
@@ -308,7 +308,7 @@ class BramichStrategy(SubtractionStrategy):
 class AdaptiveBramichStrategy(SubtractionStrategy):
     def __init__(self, image, refimage, kernelshape, bkgdegree, poly_degree=2):
         self.poly_deg = poly_degree
-        self.poly_dof = (poly_degree + 1) * (poly_degree + 2) / 2
+        self.poly_dof = (poly_degree + 1) * (poly_degree + 2) // 2
         super(AdaptiveBramichStrategy, self).\
             __init__(image, refimage, kernelshape, bkgdegree)
 
@@ -332,7 +332,7 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
                                                self.k_side, self.poly_deg,
                                                c_bkgdegree)
         coeffs = np.linalg.solve(m, b)
-        poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) / 2
+        poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) // 2
         k_dof = self.k_side * self.k_side * poly_dof
         ks = self.k_side
         self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
@@ -495,15 +495,15 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
 
     # normal slices with no border
-    stamps_y = [slice(h * i / ny, h * (i + 1) / ny, None) for i in range(ny)]
-    stamps_x = [slice(w * i / nx, w * (i + 1) / nx, None) for i in range(nx)]
+    stamps_y = [slice(h * i // ny, h * (i + 1) // ny, None) for i in range(ny)]
+    stamps_x = [slice(w * i // nx, w * (i + 1) // nx, None) for i in range(nx)]
 
     # slices with borders where possible
-    slc_wborder_y = [slice(max(0, h * i / ny - (kh - 1) / 2),
-                           min(h, h * (i + 1) / ny + (kh - 1) / 2), None)
+    slc_wborder_y = [slice(max(0, h * i // ny - (kh - 1) / 2),
+                           min(h, h * (i + 1) // ny + (kh - 1) // 2), None)
                      for i in range(ny)]
-    slc_wborder_x = [slice(max(0, w * i / nx - (kw - 1) / 2),
-                           min(w, w * (i + 1) / nx + (kw - 1) / 2), None)
+    slc_wborder_x = [slice(max(0, w * i // nx - (kw - 1) // 2),
+                           min(w, w * (i + 1) // nx + (kw - 1) // 2), None)
                      for i in range(nx)]
 
     img_stamps = [image[sly, slx] for sly in slc_wborder_y
@@ -518,17 +518,17 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     for i in range(ny):
         start_border_y = slc_wborder_y[i].start
         stop_border_y = slc_wborder_y[i].stop
-        sly_stop = h * (i + 1) / ny - stop_border_y
+        sly_stop = h * (i + 1) // ny - stop_border_y
         if sly_stop == 0:
             sly_stop = None
-        sly = slice(h * i / ny - start_border_y, sly_stop, None)
+        sly = slice(h * i // ny - start_border_y, sly_stop, None)
         for j in range(nx):
             start_border_x = slc_wborder_x[j].start
             stop_border_x = slc_wborder_x[j].stop
-            slx_stop = w * (j + 1) / nx - stop_border_x
+            slx_stop = w * (j + 1) // nx - stop_border_x
             if slx_stop == 0:
                 slx_stop = None
-            slx = slice(w * j / nx - start_border_x, slx_stop, None)
+            slx = slice(w * j // nx - start_border_x, slx_stop, None)
             recover_slices.append([sly, slx])
 
     # Here do the subtraction on each stamp
