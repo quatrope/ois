@@ -14,6 +14,8 @@ It offers different methods to subtract images:
 
 Each method can (optionally) simultaneously fit and remove common background.
 
+You can find a Jupyter notebook example with the main features at [http://toros-astro.github.io/ois/](http://toros-astro.github.io/ois/)
+
 ***
 
 ## Minimal usage example
