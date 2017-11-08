@@ -513,6 +513,17 @@ class TestVarConv(unittest.TestCase):
         kernel_norm = np.linalg.norm(opt_k.flatten(), ord=np.inf)
         self.assertLess(diff_norm / kernel_norm, 1E-8)
 
+    def test_eval_adpative_kernel(self):
+        test_k = np.array([[[ 2.], [ 3.]], [[ 1.], [ 4.]]])
+        self.assertLess(np.max(np.abs(ois.eval_adpative_kernel(test_k, 0, 0)
+                                      - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
+        self.assertLess(np.max(np.abs(ois.eval_adpative_kernel(test_k, 0, 1)
+                                      - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
+        self.assertLess(np.max(np.abs(ois.eval_adpative_kernel(test_k, 1, 0)
+                                      - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
+        self.assertLess(np.max(np.abs(ois.eval_adpative_kernel(test_k, 1, 1)
+                                      - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
+
 
 if __name__ == "__main__":
     unittest.main()

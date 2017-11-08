@@ -353,6 +353,7 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
+    "Convolve image with the adaptive kernel of `poly_degree` degree."
     import varconv
 
     # Check here for dimensions
@@ -376,18 +377,22 @@ def convolve2d_adaptive(image, kernel, poly_degree):
 
 
 def eval_adpative_kernel(kernel, x, y):
+    "Return the adaptive kernel at position (x, y) = (col, row)."
     if kernel.ndim == 2:
         return kernel
 
     kh, kw, dof = kernel.shape
-    # Last 0.5 is to round to nearest integer
+    # The conversion from degrees of freedom (dof) to the polynomial degree
+    # The last 0.5 is to round to nearest integer
     deg = int(-1.5 + np.sqrt(1 + 8 * dof) / 2 + 0.5)
     k_rolled = np.rollaxis(kernel, 2, 0)
+    k_xy = np.zeros((kh, kw))
     d = 0
-    for powx in range(d):
-        for powy in range(powx):
-            k_rolled[d] * np.pow(x, powx) * np.pow(y, powy)
+    for powx in range(deg + 1):
+        for powy in range(deg - powx + 1):
+            k_xy += k_rolled[d] * np.power(y, powy) * np.power(x, powx)
             d += 1
+    return k_xy
 
 
 def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
