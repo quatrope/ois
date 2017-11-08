@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.1.3'
+__version__ = '0.1.4dev1'
 
 import numpy as np
 from scipy import signal
@@ -353,6 +353,7 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
+    "Convolve image with the adaptive kernel of `poly_degree` degree."
     import varconv
 
     # Check here for dimensions
@@ -373,6 +374,25 @@ def convolve2d_adaptive(image, kernel, poly_degree):
 
     conv = varconv.convolve2d_adaptive(img64, k64, poly_degree)
     return conv
+
+
+def eval_adpative_kernel(kernel, x, y):
+    "Return the adaptive kernel at position (x, y) = (col, row)."
+    if kernel.ndim == 2:
+        return kernel
+
+    kh, kw, dof = kernel.shape
+    # The conversion from degrees of freedom (dof) to the polynomial degree
+    # The last 0.5 is to round to nearest integer
+    deg = int(-1.5 + np.sqrt(1 + 8 * dof) / 2 + 0.5)
+    k_rolled = np.rollaxis(kernel, 2, 0)
+    k_xy = np.zeros((kh, kw))
+    d = 0
+    for powx in range(deg + 1):
+        for powy in range(deg - powx + 1):
+            k_xy += k_rolled[d] * np.power(y, powy) * np.power(x, powx)
+            d += 1
+    return k_xy
 
 
 def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
@@ -423,11 +443,11 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     if (kw % 2 == 0) or (kh % 2 == 0):
         raise EvenSideKernelError("Kernel sides must be odd.")
 
-    DefaultStrategy = BramichStrategy # noqa
+    DefaultStrategy = BramichStrategy  # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
                       "Bramich": BramichStrategy,
                       "Alard-Lupton": AlardLuptonStrategy}
-    DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
+    DiffStrategy = all_strategies.get(method, DefaultStrategy)  # noqa
 
     subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree,
                               **kwargs)
@@ -488,11 +508,11 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     if (kw % 2 == 0) or (kh % 2 == 0):
         raise EvenSideKernelError("Kernel sides must be odd.")
 
-    DefaultStrategy = BramichStrategy # noqa
+    DefaultStrategy = BramichStrategy  # noqa
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
                       "Bramich": BramichStrategy,
                       "Alard-Lupton": AlardLuptonStrategy}
-    DiffStrategy = all_strategies.get(method, DefaultStrategy) # noqa
+    DiffStrategy = all_strategies.get(method, DefaultStrategy)  # noqa
 
     # normal slices with no border
     stamps_y = [slice(h * i // ny, h * (i + 1) // ny, None) for i in range(ny)]
