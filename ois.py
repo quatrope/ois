@@ -26,7 +26,7 @@
     University of Texas at San Antonio
 """
 
-__version__ = '0.1.3'
+__version__ = '0.1.4.dev1'
 
 import numpy as np
 from scipy import signal
@@ -236,9 +236,12 @@ class AlardLuptonStrategy(SubtractionStrategy):
 
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
+            self.difference = np.ma.array(self.image_data - opt_image,
+                                      mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
-        self.difference = self.image - self.optimal_image
+            self.difference = self.image_data - opt_image
+
 
 
 class BramichStrategy(SubtractionStrategy):
@@ -300,9 +303,11 @@ class BramichStrategy(SubtractionStrategy):
 
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
+            self.difference = np.ma.array(self.image_data - opt_image,
+                                      mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
-        self.difference = self.image - self.optimal_image
+            self.difference = self.image_data - opt_image
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
@@ -336,20 +341,21 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         k_dof = self.k_side * self.k_side * poly_dof
         ks = self.k_side
         self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
-        opt_conv = varconv.convolve2d_adaptive(ref64, self.kernel,
+        opt_image = varconv.convolve2d_adaptive(ref64, self.kernel,
                                                self.poly_deg)
         if self.bkgdegree is not None:
             self.background = self.coeffstobackground(coeffs[k_dof:])
-            self.optimal_image = opt_conv + self.background
+            opt_image += self.background
         else:
             self.background = np.zeros(self.image.shape)
-            self.optimal_image = opt_conv
 
         if self.badpixmask is not None:
-            self.optimal_image = np.ma.array(self.optimal_image,
-                                             mask=self.badpixmask)
-
-        self.difference = self.image - self.optimal_image
+            self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
+            self.difference = np.ma.array(self.image_data - opt_image,
+                                      mask=self.badpixmask)
+        else:
+            self.optimal_image = opt_image
+            self.difference = self.image_data - opt_image
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
