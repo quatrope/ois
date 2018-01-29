@@ -526,7 +526,7 @@ def subtractongrid(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     stamps_x = [slice(w * i // nx, w * (i + 1) // nx, None) for i in range(nx)]
 
     # slices with borders where possible
-    slc_wborder_y = [slice(max(0, h * i // ny - (kh - 1) / 2),
+    slc_wborder_y = [slice(max(0, h * i // ny - (kh - 1) // 2),
                            min(h, h * (i + 1) // ny + (kh - 1) // 2), None)
                      for i in range(ny)]
     slc_wborder_x = [slice(max(0, w * i // nx - (kw - 1) // 2),
