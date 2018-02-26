@@ -48,30 +48,27 @@ def _has_mask(image):
 class SubtractionStrategy(object):
 
     def __init__(self, image, refimage, kernelshape, bkgdegree):
-        self.image = image
-        self.refimage = refimage
-        # Check here for dimensions
-        if self.image.ndim != 2:
-            raise ValueError("Wrong dimensions for image")
-        if self.refimage.ndim != 2:
-            raise ValueError("Wrong dimensions for refimage")
-        if self.image.shape != self.refimage.shape:
-            raise ValueError("Images have different shapes")
-        self.h, self.w = image.shape
-
         self.k_shape = kernelshape
         self.k_side = kernelshape[0]
+
+        # Check here for dimensions
+        if image.ndim != 2:
+            raise ValueError("Wrong dimensions for image")
+        if refimage.ndim != 2:
+            raise ValueError("Wrong dimensions for refimage")
+        if image.shape != refimage.shape:
+            raise ValueError("Images have different shapes")
+        self.h, self.w = image.shape
+        self.image, self.refimage, self.badpixmask =\
+            self.separate_data_mask(image, refimage)
+
         self.bkgdegree = bkgdegree
-
-        self.image_data, self.refimage_data, self.badpixmask =\
-            self.separate_data_mask()
-
         self.optimal_image = None
         self.background = None
         self.kernel = None
         self.difference = None
 
-    def separate_data_mask(self):
+    def separate_data_mask(self, image, refimage):
         def ret_data(image):
             if isinstance(image, np.ma.MaskedArray):
                 image_data = image.data
@@ -79,15 +76,15 @@ class SubtractionStrategy(object):
                 image_data = image
             return image_data
         badpixmask = None
-        if _has_mask(self.refimage):
+        if _has_mask(refimage):
             badpixmask = ndimage.binary_dilation(
-                self.refimage.mask.astype('uint8'),
+                refimage.mask.astype('uint8'),
                 structure=np.ones(self.k_shape)).astype('bool')
-            if _has_mask(self.image):
-                badpixmask += self.image.mask
-        elif _has_mask(self.image):
-            badpixmask = self.image.mask
-        return ret_data(self.image), ret_data(self.refimage), badpixmask
+            if _has_mask(image):
+                badpixmask += image.mask
+        elif _has_mask(image):
+            badpixmask = image.mask
+        return ret_data(image), ret_data(refimage), badpixmask
 
     def coeffstobackground(self, coeffs):
         bkgdeg = int(-1.5 + 0.5 * np.sqrt(9 + 8 * (len(coeffs) - 1)))
@@ -227,7 +224,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
             nkcoeffs += n * (n + 1) // 2
 
         self.kernel = self.coeffstokernel(coeffs[:nkcoeffs])
-        opt_image = signal.convolve2d(self.refimage_data, self.kernel,
+        opt_image = signal.convolve2d(self.refimage, self.kernel,
                                       mode='same')
         if self.bkgdegree is not None:
             self.background = self.coeffstobackground(coeffs[nkcoeffs:])
@@ -237,11 +234,11 @@ class AlardLuptonStrategy(SubtractionStrategy):
 
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
-            self.difference = np.ma.array(self.image_data - opt_image,
+            self.difference = np.ma.array(self.image - opt_image,
                                       mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
-            self.difference = self.image_data - opt_image
+            self.difference = self.image - opt_image
 
 
 
@@ -249,7 +246,7 @@ class BramichStrategy(SubtractionStrategy):
 
     def get_cmatrices(self):
         kh, kw = self.k_shape
-        h, w = self.refimage_data.shape
+        h, w = self.refimage.shape
         c = []
         for i in range(kh):
             for j in range(kw):
@@ -294,7 +291,7 @@ class BramichStrategy(SubtractionStrategy):
         kh, kw = self.k_shape
         nkcoeffs = kh * kw
         self.kernel = coeffs[:nkcoeffs].reshape(self.k_shape)
-        opt_image = signal.convolve2d(self.refimage_data, self.kernel,
+        opt_image = signal.convolve2d(self.refimage, self.kernel,
                                       mode='same')
         if self.bkgdegree is not None:
             self.background = self.coeffstobackground(coeffs[nkcoeffs:])
@@ -304,11 +301,11 @@ class BramichStrategy(SubtractionStrategy):
 
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
-            self.difference = np.ma.array(self.image_data - opt_image,
+            self.difference = np.ma.array(self.image - opt_image,
                                       mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
-            self.difference = self.image_data - opt_image
+            self.difference = self.image - opt_image
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
@@ -322,14 +319,14 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         import varconv
 
         # Check here for types
-        if self.image_data.dtype != np.float64:
-            img64 = self.image_data.astype('float64')
+        if self.image.dtype != np.float64:
+            img64 = self.image.astype('float64')
         else:
-            img64 = self.image_data
-        if self.refimage_data.dtype != np.float64:
-            ref64 = self.refimage_data.astype('float64')
+            img64 = self.image
+        if self.refimage.dtype != np.float64:
+            ref64 = self.refimage.astype('float64')
         else:
-            ref64 = self.refimage_data
+            ref64 = self.refimage
 
         c_bkgdegree = -1 if self.bkgdegree is None else self.bkgdegree
         m, b, conv = varconv.gen_matrix_system(img64, ref64,
@@ -352,11 +349,11 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
 
         if self.badpixmask is not None:
             self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
-            self.difference = np.ma.array(self.image_data - opt_image,
+            self.difference = np.ma.array(self.image - opt_image,
                                       mask=self.badpixmask)
         else:
             self.optimal_image = opt_image
-            self.difference = self.image_data - opt_image
+            self.difference = self.image - opt_image
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):

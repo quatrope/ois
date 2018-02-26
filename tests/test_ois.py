@@ -346,6 +346,7 @@ class TestSubtract(unittest.TestCase):
         self.assertFalse(isinstance(b, np.ma.MaskedArray))
 
     def test_convolve2d_adaptive_dtype_check(self):
+        kernel = np.random.random((3, 3, 1))
         ois.convolve2d_adaptive(self.ref_img.astype('int32'), kernel, 0)
         ois.convolve2d_adaptive(self.ref_img, kernel.astype('int32'), 0)
 
