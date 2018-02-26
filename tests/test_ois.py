@@ -5,15 +5,6 @@ import os
 import varconv
 
 
-class TestExceptions(unittest.TestCase):
-    def testWrongMethodName(self):
-        img = np.random.random(100, 100)
-        ref = np.random.random(100, 100)
-        with self.assertRaises(ValueError):
-            diff, opt_image, krn, bkg = ois.optimal_system(
-                img, ref, method="WrongName")
-
-
 class TestSubtract(unittest.TestCase):
     def setUp(self):
         from PIL import Image
@@ -166,7 +157,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_bramich_ri(self):
         # Test Bramich without masks:
-        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img,
+        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -179,7 +170,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_bramich_rmim(self):
         # Test Bramich, image masked, ref masked
-        subt_img, o, k, b = ois.subtractongrid(self.image_masked,
+        subt_img, o, k, b = ois.optimal_system(self.image_masked,
                                                self.ref_img_masked,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
@@ -194,7 +185,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_bramich_rmi(self):
         # Test Bramich image not masked, ref masked
-        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img_masked,
+        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img_masked,
                                                bkgdegree=self.bkgdeg,
                                                kernelshape=(11, 11),
                                                gridshape=(1, 1),
@@ -208,7 +199,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_bramich_rim(self):
         # Test Bramich image masked, ref not masked
-        subt_img, o, k, b = ois.subtractongrid(self.image_masked, self.ref_img,
+        subt_img, o, k, b = ois.optimal_system(self.image_masked, self.ref_img,
                                                bkgdegree=self.bkgdeg,
                                                kernelshape=(11, 11),
                                                gridshape=(1, 1),
@@ -222,7 +213,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_alardlp_ri(self):
         # Test Alard & Lupton without masks:
-        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img,
+        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -236,7 +227,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_alardlp_rmim(self):
         # Test Alard & Lupton, image masked, ref masked
-        subt_img, o, k, b = ois.subtractongrid(self.image_masked,
+        subt_img, o, k, b = ois.optimal_system(self.image_masked,
                                                self.ref_img_masked,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
@@ -252,7 +243,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_alardlp_rim(self):
         # Test Alard & Lupton, image masked, ref not masked
-        subt_img, o, k, b = ois.subtractongrid(self.image_masked, self.ref_img,
+        subt_img, o, k, b = ois.optimal_system(self.image_masked, self.ref_img,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -267,7 +258,7 @@ class TestSubtract(unittest.TestCase):
 
     def test_subtractongrid_alardlp_rmi(self):
         # Test Alard & Lupton, image not masked, ref masked
-        subt_img, o, k, b = ois.subtractongrid(self.image, self.ref_img_masked,
+        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img_masked,
                                                kernelshape=(11, 11),
                                                bkgdegree=self.bkgdeg,
                                                gridshape=(1, 1),
@@ -288,7 +279,7 @@ class TestSubtract(unittest.TestCase):
         pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-        subt_img, o, k, b = ois.subtractongrid(image, self.ref_img,
+        subt_img, o, k, b = ois.optimal_system(image, self.ref_img,
                                                kernelshape=k_shape,
                                                bkgdegree=bkg_deg,
                                                gridshape=(1, 1),
@@ -308,7 +299,7 @@ class TestSubtract(unittest.TestCase):
         pol_dof = (deg + 1) * (deg + 2) // 2
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-        subt_img, o, k, b = ois.subtractongrid(image, self.ref_img_masked,
+        subt_img, o, k, b = ois.optimal_system(image, self.ref_img_masked,
                                                kernelshape=k_shape,
                                                bkgdegree=bkg_deg,
                                                gridshape=(1, 1),
