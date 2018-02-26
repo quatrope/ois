@@ -5,6 +5,15 @@ import os
 import varconv
 
 
+class TestExceptions(unittest.TestCase):
+    def testWrongMethodName(self):
+        img = np.random.random(100, 100)
+        ref = np.random.random(100, 100)
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                img, ref, method="WrongName")
+
+
 class TestSubtract(unittest.TestCase):
     def setUp(self):
         from PIL import Image

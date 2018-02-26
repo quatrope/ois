@@ -454,8 +454,10 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=3,
     all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
                       "Bramich": BramichStrategy,
                       "Alard-Lupton": AlardLuptonStrategy}
-    DiffStrategy = all_strategies.get(method, DefaultStrategy)  # noqa
-
+    try:
+        DiffStrategy = all_strategies[method]  # noqa
+    except KeyError:
+        raise ValueError("No method named {}".format(method))
     subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree,
                               **kwargs)
     opt_image = subt_strat.get_optimal_image()
