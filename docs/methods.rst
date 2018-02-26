@@ -47,11 +47,11 @@ If not provided, it will default to 2.
 Bramich
 -------
 
-If no list of Gaussians is provided, ois will default to use the method for image subtraction developed by 
+If no list of Gaussians is provided, ois will default to use the method for image subtraction developed by
 
-Bramich [bramich2010]_ modifies Alard-Lupton making each pixel of the kernel an independent parameter to fit.
+Bramich [bramich2008]_ modifies Alard-Lupton making each pixel of the kernel an independent parameter to fit.
 This is equivalent as having a vector basis consisting of `Delta kernels`.
-It will also simultaneously fit a polynomial background.
+It can also simultaneously fit a polynomial background.
 
 This method does not make assumptions on the kernel shape and can thus model completely arbitrary kernels.
 It can also correct for small translations between the images.
@@ -60,14 +60,14 @@ While more accurate, this method is computationally more expensive than Alard & 
 
 .. warning::
 
-  Since each pixel is treated independently, a 11 by 11 kernel will have 121 free parameters just for the kernel. 
+  Since each pixel is treated independently, a 11 by 11 kernel will have 121 free parameters just for the kernel.
   It grows quadratically with the kernel side. This needs to be taken in consideration for large kernels.
 
 
 Adaptive Bramich
 ----------------
 
-Like Bramich, this method also treats each pixel independently, 
+Like Bramich, this method also treats each pixel independently,
 but it will also multiply each pixel by a polynomial on the coordinates of the image.
 
 This requires a special type of convolution where the kernel varies point to point in the image.
@@ -84,5 +84,5 @@ The method is described in more detail in [miller2008]_.
 
 
 .. [alard1997] "A method for optimal image subtraction" - C. Alard, R. H. Lupton, 1997.
-.. [bramich2010] "A New Algorithm For Difference Image Analysis" - D.M. Bramich, 2010.
+.. [bramich2008] "A New Algorithm For Difference Image Analysis" - D.M. Bramich, 2008.
 .. [miller2008] "Optimal Image Subtraction Method: Summary Derivations, Applications, and Publicly Shared Application Using IDL" - J. PATRICK MILLER et al., 2008.

@@ -2,15 +2,16 @@ Usage
 =====
 
 If your image has a relatively narrow field of view, and your PSF doesn't change significatively across the field,
-you can use the method optimalkernelandbkg::
+you can use the method optimal_system::
 
     >>> diff_image, optimal_image, kernel, background = ois.optimal_system(test_image, refimage)
 
 Here test_image is the image we want to analize and refimage is an archive or reference image from the same location in the sky, previously aligned with test_image.
+The subtraction works best when refimage is of better quality than test_image.
 
 This will return the difference image and the optimal_image, which is the convolution of refimage with a proper convolution kernel and
 background fit so that optimal_image be as close to test_image as possible.
-The kernel and the background that minimized the difference between test_image and optimal_image are also returned as reference.
+The kernel and the background that minimized the difference between test_image and optimal_image are also returned for reference.
 
 The default method for kernel fit is Bramich (2008), which uses the information of all pixels in the image and fits for every pixel in the convolution kernel independently.
 For more information on other fitting methods, see section :ref:`methods`.
@@ -20,6 +21,11 @@ optimal_system Parameters
 -------------------------
 
 In addition to the image to be subtracted and the reference image, you can specify several other parameters.
+
+* gridshape
+    When the PSF can't be approximated as constant across the CCD, you may want to divide the image into a grid and perform image subtraction on each grid element separately.
+    This takes care of border issues among the grid sections, using some padding at the section boundaries for the convolution, wherever possible.
+    The shape of the grid as a rows, colums tuple. Default is None (no grid).
 
  * image
     A numpy array with 2 dimensions. It will be the image to be subtracted from.
@@ -31,8 +37,8 @@ In addition to the image to be subtracted and the reference image, you can speci
     The shape of the kernel as a row, colums tuple. Default is (11, 11).
 
  * bkgdegree
-    The degree of the polynomial fit to the background. Default is 3.
-    To turn off background fitting set this one to None.
+    The degree of the polynomial fit to the background. Default is None (no background fit).
+    Note that bkgdegree=0 corresponds to a constant-background fit.
 
  * method
     A string containing one of the following: "Alard-Lupton", "Bramich" or "AdaptiveBramich".
@@ -45,7 +51,7 @@ In addition to the image to be subtracted and the reference image, you can speci
 
  * gausslist
     *This has to be supplied only for the Alard-Lupton method*.
-    
+
     A list of dictionaries containing info about the Gaussians and modulating polynomial used in the multi-Gaussian fit.
     For each gaussian we want to use, we need the following keys (Not all the keys need to be present):
 
@@ -91,24 +97,3 @@ The ois subtraction methods will ignore completely the information on those bad 
 The returned image, will have a combined OR mask from the mask in test_image and the mask on refimage expanded to exclude pixels that would have used defective pixels in the convolution.
 
 If no mask is provided in both test_image and refimage, the returned image will be a numpy array (no mask).
-
-
-Non-constant PSF
-----------------
-
-When the image has a large field of view or lens defects, the PSF won't be constant across the CCD.
-
-In this case you may want to use AdaptiveBramich method, which tries to correct for kernel spatial variation.
-
-Another solution is to section your CCD into smaller regions on a grid and apply subtraction on each grid section.
-
-OIS offers an utility to apply image subtraction on each subsection, that also takes care of border issues.
-It uses a little bit of padding at the section boundaries for the convolution, when possible.
-
-    >>> diff = subtractongrid(test_image, refimage, gridshape=(3, 2))
-
-This method will divide test_image into 3 rows and 2 columns and apply optimal_system on each grid section.
-
-*gridshape* is a tuple with rows, columns. Default is (2, 2).
-
-It accepts all the other parameters in *optimal_system*.
