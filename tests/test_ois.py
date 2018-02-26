@@ -5,6 +5,39 @@ import os
 import varconv
 
 
+class TestExceptions(unittest.TestCase):
+    def setUp(self):
+        self.img = np.random.random((100, 100))
+        self.ref = np.random.random((100, 100))
+
+    def test_wrong_method_name(self):
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                self.img, self.ref, method="WrongName")
+
+    def test_even_side_kernel(self):
+        for bad_shape in ((8, 9), (9, 8), (8, 8)):
+            with self.assertRaises(ois.EvenSideKernelError):
+                ois.optimal_system(self.img, self.ref, bad_shape)
+
+    def test_image_dims(self):
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                self.img, np.random.random((10, 10, 100)))
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                np.random.random((10, 10, 100)), self.ref)
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                np.zeros((5, 5)), np.zeros((7, 7)))
+
+    def test_convolve2d_array_dims(self):
+        with self.assertRaises(ValueError):
+            ois.convolve2d_adaptive(np.zeros((10, 10, 2)), np.ones((3, 3, 6)), 2)
+        with self.assertRaises(ValueError):
+            ois.convolve2d_adaptive(np.zeros((10, 10)), np.ones((9, 6)), 2)
+
+
 class TestSubtract(unittest.TestCase):
     def setUp(self):
         from PIL import Image
@@ -354,17 +387,6 @@ class TestSubtract(unittest.TestCase):
         self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
         norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
         self.assertLess(norm_diff, 1E-2)
-
-    def test_oddside_kernel(self):
-        bad_shape_kernel = (8, 9)
-        with self.assertRaises(ois.EvenSideKernelError):
-            ois.optimal_system(self.image, self.ref_img, bad_shape_kernel)
-        bad_shape_kernel = (9, 8)
-        with self.assertRaises(ois.EvenSideKernelError):
-            ois.optimal_system(self.image, self.ref_img, bad_shape_kernel)
-        bad_shape_kernel = (8, 8)
-        with self.assertRaises(ois.EvenSideKernelError):
-            ois.optimal_system(self.image, self.ref_img, bad_shape_kernel)
 
 
 class TestVarConv(unittest.TestCase):
