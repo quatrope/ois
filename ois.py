@@ -61,6 +61,7 @@ class SubtractionStrategy(object):
         self.image, self.refimage, self.badpixmask =\
             self.separate_data_mask(image, refimage)
 
+        self.coeffs = None
         self.bkgdegree = bkgdegree
         self.optimal_image = None
         self.background = None
@@ -109,47 +110,47 @@ class SubtractionStrategy(object):
                  for aY in allys[:self.bkgdegree + 1 - i]]
         return bkg_c
 
-    def solve_system():
+    def get_coeffs():
         "Override this function to solve the matrix minimization system"
-        pass
+        return self.coeffs
 
     def get_optimal_image(self):
-        if self.optimal_image is None:
-            self.solve_system()
-            opt_image = signal.convolve2d(
-                self.refimage, self.get_kernel(), mode='same')
-            if self.bkgdegree is not None:
-                opt_image += self.get_background()
-            if self.badpixmask is not None:
-                self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
-            else:
-                self.optimal_image = opt_image
+        if self.optimal_image is not None:
+            return self.optimal_image
+        opt_image = signal.convolve2d(
+            self.refimage, self.get_kernel(), mode='same')
+        if self.bkgdegree is not None:
+            opt_image += self.get_background()
+        if self.badpixmask is not None:
+            self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
+        else:
+            self.optimal_image = opt_image
         return self.optimal_image
 
     def get_background(self):
-        if self.background is None:
-            self.solve_system()
-            if self.bkgdegree is not None:
-                bkgdof = (self.bkgdegree + 1) * (self.bkgdegree + 2) // 2
-                self.background = self.coeffstobackground(self.coeffs[-bkgdof:])
-            else:
-                self.background = np.zeros(self.image.shape)
+        if self.background is not None:
+            return self.background
+        if self.bkgdegree is not None:
+            bkgdof = (self.bkgdegree + 1) * (self.bkgdegree + 2) // 2
+            coeffs = self.get_coeffs()
+            self.background = self.coeffstobackground(coeffs[-bkgdof:])
+        else:
+            self.background = np.zeros(self.image.shape)
         return self.background
 
     def get_kernel(self):
-        if self.kernel is None:
-            self.solve_system()
+        "Override this method to return the kernel"
         return self.kernel
 
     def get_difference(self):
-        if self.difference is None:
-            self.solve_system()
-            opt_image = self.get_optimal_image()
-            if self.badpixmask is not None:
-                self.difference = np.ma.array(
-                    self.image - opt_image, mask=self.badpixmask)
-            else:
-                self.difference = self.image - opt_image
+        if self.difference is not None:
+            return self.difference
+        opt_image = self.get_optimal_image()
+        if self.badpixmask is not None:
+            self.difference = np.ma.array(
+                self.image - opt_image, mask=self.badpixmask)
+        else:
+            self.difference = self.image - opt_image
         return self.difference
 
 
@@ -203,34 +204,35 @@ class AlardLuptonStrategy(SubtractionStrategy):
         return c
 
     def get_kernel(self):
-        if self.kernel is None:
-            self.solve_system()
-            nkcoeffs = 0
-            for aGauss in self.gausslist:
-                n = aGauss['modPolyDeg'] + 1
-                nkcoeffs += n * (n + 1) // 2
-            coeffs = self.coeffs[:nkcoeffs]
-            kh, kw = self.k_shape
-            v, u = np.mgrid[:kh, :kw]
-            kernel = np.zeros((kh, kw))
-            for aGauss in self.gausslist:
-                n = aGauss['modPolyDeg'] + 1
-                allus = [pow(u, i) for i in range(n)]
-                allvs = [pow(v, i) for i in range(n)]
-                gaussk = self.gauss(center=aGauss['center'],
-                                    sx=aGauss['sx'], sy=aGauss['sy'])
-
-
-                ind = 0
-                for i, aU in enumerate(allus):
-                    for aV in allvs[:n - i]:
-                        kernel += coeffs[ind] * aU * aV
-                        ind += 1
-                kernel *= gaussk
-            self.kernel = kernel
+        if self.kernel is not None:
+            return self.kernel
+        nkcoeffs = 0
+        for aGauss in self.gausslist:
+            n = aGauss['modPolyDeg'] + 1
+            nkcoeffs += n * (n + 1) // 2
+        coeffs = self.get_coeffs()
+        kcoeffs = coeffs[:nkcoeffs]
+        kh, kw = self.k_shape
+        v, u = np.mgrid[:kh, :kw]
+        kernel = np.zeros((kh, kw))
+        for aGauss in self.gausslist:
+            n = aGauss['modPolyDeg'] + 1
+            allus = [pow(u, i) for i in range(n)]
+            allvs = [pow(v, i) for i in range(n)]
+            gaussk = self.gauss(center=aGauss['center'],
+                                sx=aGauss['sx'], sy=aGauss['sy'])
+            ind = 0
+            for i, aU in enumerate(allus):
+                for aV in allvs[:n - i]:
+                    kernel += kcoeffs[ind] * aU * aV
+                    ind += 1
+            kernel *= gaussk
+        self.kernel = kernel
         return self.kernel        
 
-    def solve_system(self):
+    def get_coeffs(self):
+        if self.coeffs is not None:
+            return self.coeffs
         c = self.get_cmatrices()
         if self.bkgdegree is not None:
             c_bkg = self.get_cmatrices_background()
@@ -246,6 +248,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
             b = np.array([(self.image * ci)[~self.badpixmask].sum()
                          for ci in c])
         self.coeffs = np.linalg.solve(m, b)
+        return self.coeffs
 
 
 class BramichStrategy(SubtractionStrategy):
@@ -277,13 +280,16 @@ class BramichStrategy(SubtractionStrategy):
         return c
 
     def get_kernel(self):
-        if self.kernel is None:
-            self.solve_system()
-            kh, kw = self.k_shape
-            self.kernel = self.coeffs[:(kh * kw)].reshape(self.k_shape)
+        if self.kernel is not None:
+            return self.kernel
+        coeffs = self.get_coeffs()
+        kh, kw = self.k_shape
+        self.kernel = coeffs[:(kh * kw)].reshape(self.k_shape)
         return self.kernel
 
-    def solve_system(self):
+    def get_coeffs(self):
+        if self.coeffs is not None:
+            return self.coeffs
         c = self.get_cmatrices()
         if self.bkgdegree is not None:
             c_bkg = self.get_cmatrices_background()
@@ -299,6 +305,7 @@ class BramichStrategy(SubtractionStrategy):
             b = np.array([(self.image * ci)[~self.badpixmask].sum()
                          for ci in c])
         self.coeffs = np.linalg.solve(m, b)
+        return self.coeffs
 
 
 class AdaptiveBramichStrategy(SubtractionStrategy):
@@ -306,54 +313,58 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         self.poly_deg = poly_degree
         self.poly_dof = (poly_degree + 1) * (poly_degree + 2) // 2
         self.k_side = kernelshape[0]
+
+        # Check here for types
+        if image.dtype != np.float64:
+            self.img64 = image.astype('float64')
+        else:
+            self.img64 = image
+        if refimage.dtype != np.float64:
+            self.ref64 = refimage.astype('float64')
+        else:
+            self.ref64 = refimage
+
         super(AdaptiveBramichStrategy, self).\
             __init__(image, refimage, kernelshape, bkgdegree)
 
     def get_optimal_image(self):
         # AdaptiveBramich has to override this function because it uses a
         # special type of convolution for optimal_image
-        if self.optimal_image is None:
-            import varconv
-            self.solve_system()
-            opt_image = varconv.convolve2d_adaptive(
-                self.ref64, self.get_kernel(), self.poly_deg)
-            if self.bkgdegree is not None:
-                opt_image += self.get_background()
-            if self.badpixmask is not None:
-                self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
-            else:
-                self.optimal_image = opt_image
+        if self.optimal_image is not None:
+            return self.optimal_image
+        import varconv
+        opt_image = varconv.convolve2d_adaptive(
+            self.ref64, self.get_kernel(), self.poly_deg)
+        if self.bkgdegree is not None:
+            opt_image += self.get_background()
+        if self.badpixmask is not None:
+            self.optimal_image = np.ma.array(opt_image, mask=self.badpixmask)
+        else:
+            self.optimal_image = opt_image
         return self.optimal_image
 
     def get_kernel(self):
-        if self.kernel is None:
-            self.solve_system()
-            poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) // 2
-            k_dof = self.k_side * self.k_side * poly_dof
-            ks = self.k_side
-            self.kernel = self.coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
+        if self.kernel is not None:
+            return self.kernel
+        poly_dof = (self.poly_deg + 1) * (self.poly_deg + 2) // 2
+        k_dof = self.k_side * self.k_side * poly_dof
+        ks = self.k_side
+        coeffs = self.get_coeffs()
+        self.kernel = coeffs[:k_dof].reshape((ks, ks, self.poly_dof))
         return self.kernel
 
-    def solve_system(self):
+    def get_coeffs(self):
+        if self.coeffs is not None:
+            return self.coeffs
         import varconv
-
-        # Check here for types
-        if self.image.dtype != np.float64:
-            img64 = self.image.astype('float64')
-        else:
-            img64 = self.image
-        if self.refimage.dtype != np.float64:
-            self.ref64 = self.refimage.astype('float64')
-        else:
-            self.ref64 = self.refimage
-
         c_bkgdegree = -1 if self.bkgdegree is None else self.bkgdegree
-        m, b, conv = varconv.gen_matrix_system(img64, self.ref64,
+        m, b, conv = varconv.gen_matrix_system(self.img64, self.ref64,
                                                self.badpixmask is not None,
                                                self.badpixmask,
                                                self.k_side, self.poly_deg,
                                                c_bkgdegree)
         self.coeffs = np.linalg.solve(m, b)
+        return self.coeffs
 
 
 def convolve2d_adaptive(image, kernel, poly_degree):
