@@ -3,42 +3,211 @@ import ois
 import numpy as np
 import os
 import varconv
+import scipy
 
 
-class TestExceptions(unittest.TestCase):
+class TestPSFCorrect(unittest.TestCase):
     def setUp(self):
-        self.img = np.random.random((100, 100))
-        self.ref = np.random.random((100, 100))
+        h, w = img_shape = (100, 100)
+        n_stars = 10
+        pos_x = np.random.randint(10, w - 10, n_stars)
+        pos_y = np.random.randint(10, h - 10, n_stars)
+        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        self.img = np.zeros(img_shape)
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.img[y, x] = f
+        self.ref = self.img.copy()
 
-    def test_wrong_method_name(self):
-        with self.assertRaises(ValueError):
-            diff, opt_image, krn, bkg = ois.optimal_system(
-                self.img, self.ref, method="WrongName")
+        from scipy.ndimage.filters import gaussian_filter
+        self.img = gaussian_filter(self.img, sigma=1.7, mode='constant')
+        self.ref = gaussian_filter(self.ref, sigma=0.8, mode='constant')
 
-    def test_even_side_kernel(self):
-        for bad_shape in ((8, 9), (9, 8), (8, 8)):
-            with self.assertRaises(ois.EvenSideKernelError):
-                ois.optimal_system(self.img, self.ref, bad_shape)
+    def test_AlardLupton_diffPSF(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Alard-Lupton",
+            gausslist=[{'sx': 1.5, 'sy': 1.5}])
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
-    def test_image_dims(self):
-        with self.assertRaises(ValueError):
-            diff, opt_image, krn, bkg = ois.optimal_system(
-                self.img, np.random.random((10, 10, 100)))
-        with self.assertRaises(ValueError):
-            diff, opt_image, krn, bkg = ois.optimal_system(
-                np.random.random((10, 10, 100)), self.ref)
-        with self.assertRaises(ValueError):
-            diff, opt_image, krn, bkg = ois.optimal_system(
-                np.zeros((5, 5)), np.zeros((7, 7)))
+    def test_Bramich_diffPSF(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Bramich")
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
-    def test_convolve2d_array_dims(self):
-        with self.assertRaises(ValueError):
-            ois.convolve2d_adaptive(np.zeros((10, 10, 2)), np.ones((3, 3, 6)), 2)
-        with self.assertRaises(ValueError):
-            ois.convolve2d_adaptive(np.zeros((10, 10)), np.ones((9, 6)), 2)
+    def test_AdaptiveBramich_diffPSF(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="AdaptiveBramich")
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
 
-class TestSubtract(unittest.TestCase):
+class TestAlignmentCorrect(unittest.TestCase):
+    def setUp(self):
+        h, w = img_shape = (100, 100)
+        n_stars = 10
+        pos_x = np.random.randint(10, w - 10, n_stars)
+        pos_y = np.random.randint(10, h - 10, n_stars)
+        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        self.img = np.zeros(img_shape)
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.img[y, x] = f
+        self.ref = np.zeros(img_shape)
+        self.x0, self.y0 = 2, 1
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.ref[y + self.y0, x + self.x0] = f  # We add a small translation here
+        # Let's add a Gaussian PSF response with same seeing for both images
+        from scipy.ndimage.filters import gaussian_filter
+        self.img = gaussian_filter(self.img, sigma=1.5, mode='constant')
+        self.ref = gaussian_filter(self.ref, sigma=1.5, mode='constant')
+
+    def test_AlardLupton_align(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Alard-Lupton",
+            kernelshape=(5, 5),
+            gausslist=[{'sx': 0.01, 'sy':0.01, 'center': (2 - self.x0, 2 - self.y0), 'modPolyDeg':0}])
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+    def test_Bramich_align(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Bramich")
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+    def test_AdaptiveBramich_align(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="AdaptiveBramich")
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+
+class TestSmallRotationCorrect(unittest.TestCase):
+    def setUp(self):
+        h, w = img_shape = (100, 100)
+        n_stars = 10
+        pos_x = np.random.randint(10, w - 10, n_stars)
+        pos_y = np.random.randint(10, h - 10, n_stars)
+        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+
+        self.img = np.zeros(img_shape)
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.img[y, x] = f
+
+        from scipy.ndimage.filters import gaussian_filter
+        self.img = gaussian_filter(self.img, sigma=1.5, mode='constant')
+
+        from scipy.ndimage import rotate
+        self.ref = rotate(self.img, 0.05)
+        hr, wr = self.ref.shape
+        self.ref = self.ref[(hr - h) // 2 + (hr - h) % 2: -(hr - h) // 2 or None,
+                    (wr - w) // 2 + (wr - w) % 2: -(wr - w) // 2 or None]
+
+    def test_AdaptiveBramich_rotation(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="AdaptiveBramich",
+            poly_degree=2)
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+
+class TestMasking(unittest.TestCase):
+    def setUp(self):
+        h, w = img_shape = (100, 100)
+        n_stars = 10
+        pos_x = np.random.randint(10, w - 10, n_stars)
+        pos_y = np.random.randint(10, h - 10, n_stars)
+        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        self.img = np.zeros(img_shape)
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.img[y, x] = f
+        self.ref = self.img.copy()
+
+        from scipy.ndimage.filters import gaussian_filter
+        self.img = gaussian_filter(self.img, sigma=1.7, mode='constant')
+        self.ref = gaussian_filter(self.ref, sigma=0.8, mode='constant')
+
+        mask = np.zeros(img_shape, dtype='bool')
+        self.img[50:60, 50:60] = 5000
+        mask[50:60, 50:60] = True    
+        self.img_masked = np.ma.array(self.img, mask=mask)
+
+        mask = np.zeros(img_shape, dtype='bool')
+        self.ref[80:90, 80:90] = 5000
+        mask[80:90, 80:90] = True    
+        self.ref_masked = np.ma.array(self.ref, mask=mask)
+
+    def test_AlardLupton_mask(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img_masked, self.ref,
+            method="Alard-Lupton",
+            gausslist=[{'sx': 1.5, 'sy': 1.5}])
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's returning masked arrays
+        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
+        self.assertTrue(isinstance(opt, np.ma.MaskedArray))
+
+    def test_Bramich_mask(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img_masked, self.ref,
+            method="Bramich")
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's returning masked arrays
+        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
+        self.assertTrue(isinstance(opt, np.ma.MaskedArray))
+
+    def test_AdaptiveBramich_mask(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img_masked, self.ref,
+            method="AdaptiveBramich")
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's returning masked arrays
+        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
+        self.assertTrue(isinstance(opt, np.ma.MaskedArray))
+
+
+class TestSubtract(object):
     def setUp(self):
         from PIL import Image
         this_dir = os.path.abspath(os.path.dirname(__file__))
@@ -381,7 +550,7 @@ class TestSubtract(unittest.TestCase):
         self.assertLess(norm_diff, 1E-2)
 
 
-class TestVarConv(unittest.TestCase):
+class TestVarConv(object):
 
     def test_gen_matrix_system_sizes(self):
         deg = 2
@@ -537,6 +706,39 @@ class TestVarConv(unittest.TestCase):
                                       - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
         self.assertLess(np.max(np.abs(ois.eval_adpative_kernel(test_k, 1, 1)
                                       - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
+
+
+class TestExceptions(unittest.TestCase):
+    def setUp(self):
+        self.img = np.random.random((100, 100))
+        self.ref = np.random.random((100, 100))
+
+    def test_wrong_method_name(self):
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                self.img, self.ref, method="WrongName")
+
+    def test_even_side_kernel(self):
+        for bad_shape in ((8, 9), (9, 8), (8, 8)):
+            with self.assertRaises(ois.EvenSideKernelError):
+                ois.optimal_system(self.img, self.ref, bad_shape)
+
+    def test_image_dims(self):
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                self.img, np.random.random((10, 10, 100)))
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                np.random.random((10, 10, 100)), self.ref)
+        with self.assertRaises(ValueError):
+            diff, opt_image, krn, bkg = ois.optimal_system(
+                np.zeros((5, 5)), np.zeros((7, 7)))
+
+    def test_convolve2d_array_dims(self):
+        with self.assertRaises(ValueError):
+            ois.convolve2d_adaptive(np.zeros((10, 10, 2)), np.ones((3, 3, 6)), 2)
+        with self.assertRaises(ValueError):
+            ois.convolve2d_adaptive(np.zeros((10, 10)), np.ones((9, 6)), 2)
 
 
 if __name__ == "__main__":
