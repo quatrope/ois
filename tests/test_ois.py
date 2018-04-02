@@ -163,21 +163,24 @@ class TestMasking(unittest.TestCase):
         self.ref = gaussian_filter(self.ref, sigma=0.8, mode='constant')
 
         mask = np.zeros(img_shape, dtype='bool')
-        self.img[50:60, 50:60] = 5000
+        self.img_masked = self.img.copy()
+        self.img_masked[50:60, 50:60] = 5000
         mask[50:60, 50:60] = True    
-        self.img_masked = np.ma.array(self.img, mask=mask)
+        self.img_masked = np.ma.array(self.img_masked, mask=mask)
 
         mask = np.zeros(img_shape, dtype='bool')
-        self.ref[80:90, 80:90] = 5000
+        self.ref_masked = self.ref.copy()
+        self.ref_masked[80:90, 80:90] = 5000
         mask[80:90, 80:90] = True    
-        self.ref_masked = np.ma.array(self.ref, mask=mask)
+        self.ref_masked = np.ma.array(self.ref_masked, mask=mask)
 
     def test_AlardLupton_mask(self):
         diff, opt, krn, bkg = ois.optimal_system(
-            self.img_masked, self.ref,
+            self.img_masked, self.ref_masked,
             method="Alard-Lupton",
             gausslist=[{'sx': 1.5, 'sy': 1.5}])
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        norm_diff = np.linalg.norm(diff.compressed()) \
+            / np.linalg.norm(self.ref_masked.compressed())
         # Assert it's a good subtraction
         self.assertLess(norm_diff, 1E-3)
         # Assert it's returning masked arrays
@@ -186,9 +189,10 @@ class TestMasking(unittest.TestCase):
 
     def test_Bramich_mask(self):
         diff, opt, krn, bkg = ois.optimal_system(
-            self.img_masked, self.ref,
+            self.img_masked, self.ref_masked,
             method="Bramich")
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        norm_diff = np.linalg.norm(diff.compressed()) \
+            / np.linalg.norm(self.ref_masked.compressed())
         # Assert it's a good subtraction
         self.assertLess(norm_diff, 1E-3)
         # Assert it's returning masked arrays
@@ -197,9 +201,10 @@ class TestMasking(unittest.TestCase):
 
     def test_AdaptiveBramich_mask(self):
         diff, opt, krn, bkg = ois.optimal_system(
-            self.img_masked, self.ref,
+            self.img_masked, self.ref_masked,
             method="AdaptiveBramich")
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        norm_diff = np.linalg.norm(diff.compressed()) \
+            / np.linalg.norm(self.ref_masked.compressed())
         # Assert it's a good subtraction
         self.assertLess(norm_diff, 1E-3)
         # Assert it's returning masked arrays
@@ -207,351 +212,77 @@ class TestMasking(unittest.TestCase):
         self.assertTrue(isinstance(opt, np.ma.MaskedArray))
 
 
-class TestSubtract(object):
+class TestBackground(unittest.TestCase):
     def setUp(self):
-        from PIL import Image
-        this_dir = os.path.abspath(os.path.dirname(__file__))
-        cameraman_path = os.path.join(this_dir, "cameraman.tif")
-        self.ref_img = np.array(Image.open(cameraman_path), dtype='float32')
-        self.degradereference()
+        h, w = img_shape = (100, 100)
+        n_stars = 10
+        pos_x = np.random.randint(10, w - 10, n_stars)
+        pos_y = np.random.randint(10, h - 10, n_stars)
+        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        self.img = np.zeros(img_shape)
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.img[y, x] = f
+        self.ref = self.img.copy()
 
-        # Make also the masked versions
-        mask = np.zeros(self.image.shape, dtype='bool')
-        h, w = mask.shape
-        mask[h // 10:h // 10 + 10, w // 10: w // 10 + 10] = True
-        mask[:, 50:60] = True
-        self.image_masked = np.ma.array(self.image, mask=mask)
+        from scipy.ndimage.filters import gaussian_filter
+        self.img = gaussian_filter(self.img, sigma=1.7, mode='constant')
+        self.ref = gaussian_filter(self.ref, sigma=0.8, mode='constant')
 
-        mask_ref = np.zeros(self.ref_img.shape, dtype='bool')
-        mask_ref[100:110, 100:110] = True
-        mask_ref[200:205, :] = True
-        self.ref_img_masked = np.ma.array(self.ref_img, mask=mask_ref)
+        xv, yv = np.meshgrid(np.arange(h, dtype='float'), np.arange(w, dtype='float'))
+        self.bkg = 2 * (xv - 5) ** 2 + (yv - 4) ** 2 + 3 * xv * yv
+        self.img += self.bkg
 
-    def tearDown(self):
-        pass
-
-    def degradereference(self):
-        from scipy import signal
-
-        # Set some arbitrary kernel to convolve with
-        def gauss(shape=(11, 11), center=None, sx=2, sy=2):
-            h, w = shape
-            if center is None:
-                center = ((h - 1) / 2., (w - 1) / 2.)
-            x0, y0 = center
-            x, y = np.meshgrid(range(w), range(h))
-            kernel = np.exp(-0.5 * ((x - x0) ** 2 / sx ** 2 +
-                            (y - y0) ** 2 / sy ** 2))
-            norm = kernel.sum()
-            return kernel / norm
-
-        def createkernel(coeffs, gausslist, kernelshape=(10, 10)):
-            kh, kw = kernelshape
-            v, u = np.mgrid[:kh, :kw]
-            mykernel = np.zeros((kh, kw))
-            for aGauss in gausslist:
-                if 'modPolyDeg' in aGauss:
-                    degmod = aGauss['modPolyDeg']
-                else:
-                    degmod = 2
-                allus = [pow(u, i) for i in range(degmod + 1)]
-                allvs = [pow(v, i) for i in range(degmod + 1)]
-                if 'center' in aGauss:
-                    center = aGauss['center']
-                else:
-                    center = None
-                gaussk = gauss(shape=kernelshape, center=center,
-                               sx=aGauss['sx'], sy=aGauss['sy'])
-                ind = 0
-                for i, aU in enumerate(allus):
-                    for aV in allvs[:degmod + 1 - i]:
-                        mykernel += coeffs[ind] * aU * aV
-                        ind += 1
-                mykernel *= gaussk
-            # mykernel /= mykernel.sum()
-            return mykernel
-
-        # mygausslist = [{'sx': 2., 'sy': 2., 'modPolyDeg': 3},
-        # {'sx': 1., 'sy': 3.}, {'sx': 3., 'sy': 1.}]
-        self.mygausslist = [{'sx': 2., 'sy': 2., 'modPolyDeg': 3}]
-        # mykcoeffs = np.random.rand(10) * 90 + 10
-        mykcoeffs = np.array([0., -7.3, 0., 0., 0., 2., 0., 1.5, 0., 0.])
-
-        mykernel = createkernel(mykcoeffs, self.mygausslist,
-                                kernelshape=(11, 11))
-        # mykernel = gauss()
-        kh, kw = mykernel.shape
-
-        self.image = signal.convolve2d(self.ref_img, mykernel, mode='same')
-
-        # Add a varying background:
-        self.bkgdeg = 2
-
-        h, w = self.ref_img.shape
-        y, x = np.mgrid[:h, :w]
-        allxs = [pow(x, i) for i in range(self.bkgdeg + 1)]
-        allys = [pow(y, i) for i in range(self.bkgdeg + 1)]
-
-        mybkg = np.zeros(self.ref_img.shape)
-        mybkgcoeffs = np.random.rand(6) * 1E-3
-
-        ind = 0
-        for i, anX in enumerate(allxs):
-            for aY in allys[:self.bkgdeg + 1 - i]:
-                mybkg += mybkgcoeffs[ind] * anX * aY
-                ind += 1
-
-        self.image += mybkg
-
-    def test_optimal_system_bramich(self):
-        # Test Bramich
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image, self.ref_img, kernelshape=(11, 11),
-            bkgdegree=self.bkgdeg, method="Bramich")
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
-        self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
-        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
-
-    def test_optimal_system_alardlp(self):
-        # Test Alard & Lupton
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image, self.ref_img,
-            kernelshape=(11, 11),
-            bkgdegree=self.bkgdeg,
+    def test_background_AlardLupton(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
             method="Alard-Lupton",
-            gausslist=self.mygausslist)
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
-        self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
-        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
+            gausslist=[{'sx': 1.5, 'sy': 1.5}],
+            bkgdegree=2)
+        # Assert it's a good subtraction
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        self.assertLess(norm_diff, 1E-3)
+        # Assert we had a good background estimation
+        norm_bkg_diff = np.linalg.norm(bkg - self.bkg) / np.linalg.norm(bkg)
+        self.assertLess(norm_bkg_diff, 1E-3)
 
-    def test_optimal_system_adaptivebramich(self):
-        # Test Adaptive Bramich
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image, self.ref_img,
-            kernelshape=(11, 11),
-            bkgdegree=self.bkgdeg,
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+    def test_background_Bramich(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Bramich",
+            bkgdegree=2)
+        # Assert it's a good subtraction
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        self.assertLess(norm_diff, 1E-3)
+        # Assert we had a good background estimation
+        norm_bkg_diff = np.linalg.norm(bkg - self.bkg) / np.linalg.norm(bkg)
+        self.assertLess(norm_bkg_diff, 1E-3)
+
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+    def test_background_AdaptiveBramich(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
             method="AdaptiveBramich",
-            poly_degree=2)
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
+            bkgdegree=2)
+        # Assert it's a good subtraction
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        self.assertLess(norm_diff, 1E-3)
+        # Assert we had a good background estimation
+        norm_bkg_diff = np.linalg.norm(bkg - self.bkg) / np.linalg.norm(bkg)
+        self.assertLess(norm_bkg_diff, 1E-3)
+
+        # Assert it's not returning masked arrays
         self.assertFalse(isinstance(diff, np.ma.MaskedArray))
-        self.assertFalse(isinstance(ruined_image, np.ma.MaskedArray))
-        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
-
-    def test_optimal_system_alardlp_masks(self):
-        # Test Alard & Lupton
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image_masked, self.ref_img_masked,
-            kernelshape=(11, 11),
-            bkgdegree=self.bkgdeg,
-            method="Alard-Lupton",
-            gausslist=self.mygausslist)
-        self.assertTrue(isinstance(diff, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(diff.compressed()) \
-            / np.linalg.norm(self.image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(ruined_image, np.ma.MaskedArray))
-        self.assertFalse(isinstance(bkg, np.ma.MaskedArray))
-
-    def test_subtractongrid_bramich_ri(self):
-        # Test Bramich without masks:
-        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img,
-                                               kernelshape=(11, 11),
-                                               bkgdegree=self.bkgdeg,
-                                               gridshape=(1, 1),
-                                               method="Bramich")
-        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
-        self.assertFalse(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_bramich_rmim(self):
-        # Test Bramich, image masked, ref masked
-        subt_img, o, k, b = ois.optimal_system(self.image_masked,
-                                               self.ref_img_masked,
-                                               kernelshape=(11, 11),
-                                               bkgdegree=self.bkgdeg,
-                                               gridshape=(1, 1),
-                                               method="Bramich")
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_bramich_rmi(self):
-        # Test Bramich image not masked, ref masked
-        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img_masked,
-                                               bkgdegree=self.bkgdeg,
-                                               kernelshape=(11, 11),
-                                               gridshape=(1, 1),
-                                               method="Bramich")
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_bramich_rim(self):
-        # Test Bramich image masked, ref not masked
-        subt_img, o, k, b = ois.optimal_system(self.image_masked, self.ref_img,
-                                               bkgdegree=self.bkgdeg,
-                                               kernelshape=(11, 11),
-                                               gridshape=(1, 1),
-                                               method="Bramich")
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_alardlp_ri(self):
-        # Test Alard & Lupton without masks:
-        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img,
-                                               kernelshape=(11, 11),
-                                               bkgdegree=self.bkgdeg,
-                                               gridshape=(1, 1),
-                                               method="Alard-Lupton",
-                                               gausslist=self.mygausslist)
-        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
-        self.assertFalse(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_alardlp_rmim(self):
-        # Test Alard & Lupton, image masked, ref masked
-        subt_img, o, k, b = ois.optimal_system(self.image_masked,
-                                               self.ref_img_masked,
-                                               kernelshape=(11, 11),
-                                               bkgdegree=self.bkgdeg,
-                                               gridshape=(1, 1),
-                                               method="Alard-Lupton",
-                                               gausslist=self.mygausslist)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_alardlp_rim(self):
-        # Test Alard & Lupton, image masked, ref not masked
-        subt_img, o, k, b = ois.optimal_system(self.image_masked, self.ref_img,
-                                               kernelshape=(11, 11),
-                                               bkgdegree=self.bkgdeg,
-                                               gridshape=(1, 1),
-                                               method="Alard-Lupton",
-                                               gausslist=self.mygausslist)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image_masked.compressed())
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_alardlp_rmi(self):
-        # Test Alard & Lupton, image not masked, ref masked
-        subt_img, o, k, b = ois.optimal_system(self.image, self.ref_img_masked,
-                                               kernelshape=(11, 11),
-                                               bkgdegree=self.bkgdeg,
-                                               gridshape=(1, 1),
-                                               method="Alard-Lupton",
-                                               gausslist=self.mygausslist)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed()) \
-            / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_adaptive_ri(self):
-        deg = 2
-        bkg_deg = None
-        k_side = 3
-        k_shape = (k_side, k_side)
-        pol_dof = (deg + 1) * (deg + 2) // 2
-        kernel = np.random.random((k_side, k_side, pol_dof))
-        image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-        subt_img, o, k, b = ois.optimal_system(image, self.ref_img,
-                                               kernelshape=k_shape,
-                                               bkgdegree=bkg_deg,
-                                               gridshape=(1, 1),
-                                               method="AdaptiveBramich",
-                                               poly_degree=deg)
-        norm_diff = np.linalg.norm(subt_img) / np.linalg.norm(image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertFalse(isinstance(subt_img, np.ma.MaskedArray))
-        self.assertFalse(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_subtractongrid_adaptive_rmi(self):
-        deg = 2
-        bkg_deg = None
-        k_side = 3
-        k_shape = (k_side, k_side)
-        pol_dof = (deg + 1) * (deg + 2) // 2
-        kernel = np.random.random((k_side, k_side, pol_dof))
-        image = ois.convolve2d_adaptive(self.ref_img, kernel, deg)
-        subt_img, o, k, b = ois.optimal_system(image, self.ref_img_masked,
-                                               kernelshape=k_shape,
-                                               bkgdegree=bkg_deg,
-                                               gridshape=(1, 1),
-                                               method="AdaptiveBramich",
-                                               poly_degree=deg)
-        self.assertTrue(isinstance(subt_img, np.ma.MaskedArray))
-        norm_diff = np.linalg.norm(subt_img.compressed())\
-            / np.linalg.norm(image)
-        self.assertLess(norm_diff, 1E-10)
-        self.assertTrue(isinstance(o, np.ma.MaskedArray))
-        self.assertFalse(isinstance(b, np.ma.MaskedArray))
-
-    def test_convolve2d_adaptive_dtype_check(self):
-        kernel = np.random.random((3, 3, 1))
-        ois.convolve2d_adaptive(self.ref_img.astype('int32'), kernel, 0)
-        ois.convolve2d_adaptive(self.ref_img, kernel.astype('int32'), 0)
-
-    def test_no_background(self):
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image, self.ref_img,
-            kernelshape=(11, 11),
-            bkgdegree=None,
-            method="Alard-Lupton",
-            gausslist=self.mygausslist)
-        self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-2)
-
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image, self.ref_img,
-            kernelshape=(11, 11),
-            bkgdegree=None,
-            method="Bramich")
-        self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-2)
-
-        diff, ruined_image, optKernel, bkg = ois.optimal_system(
-            self.image, self.ref_img,
-            kernelshape=(11, 11),
-            bkgdegree=None,
-            method="AdaptiveBramich",
-            poly_degree=1)
-        self.assertEqual(np.linalg.norm(bkg.flatten(), ord=np.inf), 0.0)
-        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.image)
-        self.assertLess(norm_diff, 1E-2)
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
 
-class TestVarConv(object):
-
+class TestVarConv(unittest.TestCase):
     def test_gen_matrix_system_sizes(self):
         deg = 2
         bkg_deg = 0
@@ -675,19 +406,17 @@ class TestVarConv(object):
                         np.linalg.norm(image, ord=np.inf), 1E-8)
 
     def test_both_bramich_consistency(self):
-        deg = 0
-        bkg_deg = 0
         k_side = 3
         image = np.random.random((10, 10))
         refimage = np.random.random((10, 10))
         k_shape = (k_side, k_side)
 
         diff, opt_img, opt_k, bkg = ois.optimal_system(
-            image, refimage, kernelshape=k_shape, bkgdegree=bkg_deg,
+            image, refimage, kernelshape=k_shape, bkgdegree=None,
             method="Bramich")
         diff, opt_img, opt_vark, bkg = ois.optimal_system(
-            image, refimage, kernelshape=k_shape, bkgdegree=bkg_deg,
-            method="AdaptiveBramich", poly_degree=deg)
+            image, refimage, kernelshape=k_shape, bkgdegree=None,
+            method="AdaptiveBramich", poly_degree=0)
 
         self.assertEqual(opt_vark.shape, (k_side, k_side, 1))
         opt_vark = opt_vark.reshape((k_side, k_side))
@@ -706,6 +435,11 @@ class TestVarConv(object):
                                       - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
         self.assertLess(np.max(np.abs(ois.eval_adpative_kernel(test_k, 1, 1)
                                       - np.array([[ 2.,  3.],[ 1.,  4.]]))), 1E-10)
+
+    def test_convolve2d_adaptive_dtype_check(self):
+        kernel = np.random.random((3, 3, 1))
+        ois.convolve2d_adaptive(self.ref_img.astype('int32'), kernel, 0)
+        ois.convolve2d_adaptive(self.ref_img, kernel.astype('int32'), 0)
 
 
 class TestExceptions(unittest.TestCase):
