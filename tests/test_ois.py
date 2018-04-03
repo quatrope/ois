@@ -282,6 +282,60 @@ class TestBackground(unittest.TestCase):
         self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
 
+class TestGrid(unittest.TestCase):
+    def setUp(self):
+        h, w = img_shape = (200, 300)
+        n_stars = 60
+        pos_x = np.random.randint(10, w - 10, n_stars)
+        pos_y = np.random.randint(10, h - 10, n_stars)
+        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        self.img = np.zeros(img_shape)
+        for x, y, f in zip(pos_x, pos_y, fluxes):
+            self.img[y, x] = f
+        self.ref = self.img.copy()
+
+        from scipy.ndimage.filters import gaussian_filter
+        self.img = gaussian_filter(self.img, sigma=1.7, mode='constant')
+        self.ref = gaussian_filter(self.ref, sigma=0.8, mode='constant')
+
+    def test_AlardLupton_grid(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Alard-Lupton",
+            gausslist=[{'sx': 1.5, 'sy': 1.5}],
+            gridshape=(2, 3))
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+    def test_Bramich_grid(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="Bramich",
+            gridshape=(2, 3))
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+    def test_AdaptiveBramich_grid(self):
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref,
+            method="AdaptiveBramich",
+            gridshape=(2, 3))
+        norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
+        # Assert it's a good subtraction
+        self.assertLess(norm_diff, 1E-3)
+        # Assert it's not returning masked arrays
+        self.assertFalse(isinstance(diff, np.ma.MaskedArray))
+        self.assertFalse(isinstance(opt, np.ma.MaskedArray))
+
+
 class TestVarConv(unittest.TestCase):
     def test_gen_matrix_system_sizes(self):
         deg = 2
@@ -438,8 +492,8 @@ class TestVarConv(unittest.TestCase):
 
     def test_convolve2d_adaptive_dtype_check(self):
         kernel = np.random.random((3, 3, 1))
-        ois.convolve2d_adaptive(self.ref_img.astype('int32'), kernel, 0)
-        ois.convolve2d_adaptive(self.ref_img, kernel.astype('int32'), 0)
+        ois.convolve2d_adaptive(np.random.randint(low=0, high=100, size=(100, 100), dtype='int32'), kernel, 0)
+        ois.convolve2d_adaptive(np.random.random((100, 100)), kernel.astype('int32'), 0)
 
 
 class TestExceptions(unittest.TestCase):
