@@ -490,12 +490,16 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
         stamps_x = [slice(w * i // nx, w * (i + 1) // nx, None) for i in range(nx)]
 
         # slices with borders where possible
-        slc_wborder_y = [slice(max(0, h * i // ny - (kh - 1) // 2),
-                               min(h, h * (i + 1) // ny + (kh - 1) // 2), None)
-                         for i in range(ny)]
-        slc_wborder_x = [slice(max(0, w * i // nx - (kw - 1) // 2),
-                               min(w, w * (i + 1) // nx + (kw - 1) // 2), None)
-                         for i in range(nx)]
+        # Slices should be in (h * i // ny, h * (i + 1) // ny) but we add and
+        # subtract the kernel spill k_spill and then we clip to keep it inside
+        # image boundaries.
+        k_spill = (kh - 1) // 2
+        slc_wborder_y = [slice(np.clip(h * i // ny - k_spill, 0, h),
+                               np.clip(h * (i + 1) // ny + k_spill, 0, h),
+                               None) for i in range(ny)]
+        slc_wborder_x = [slice(np.clip(w * i // nx - k_spill, 0, w),
+                               np.clip(w * (i + 1) // nx + k_spill, 0, w),
+                               None) for i in range(nx)]
 
         img_stamps = [image[sly, slx] for sly in slc_wborder_y
                       for slx in slc_wborder_x]
@@ -509,17 +513,21 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
         for i in range(ny):
             start_border_y = slc_wborder_y[i].start
             stop_border_y = slc_wborder_y[i].stop
-            sly_stop = h * (i + 1) // ny - stop_border_y
-            if sly_stop == 0:
-                sly_stop = None
-            sly = slice(h * i // ny - start_border_y, sly_stop, None)
+            # Slice should end at h * (i + 1) // ny, any other pixels should
+            # be trimmed. sly_stop is either negative or 0.
+            # In the special case where 0 pixels need to be trimmed
+            # we use None so slice goes to the end.
+            sly_stop = (h * (i + 1) // ny - stop_border_y) or None
+            # Same with initial pixels, but sly_start is positive or 0.
+            # Zero is not a special case now (0 is array initial pixel)
+            sly_start = h * i // ny - start_border_y
+            sly = slice(sly_start, sly_stop, None)
             for j in range(nx):
                 start_border_x = slc_wborder_x[j].start
                 stop_border_x = slc_wborder_x[j].stop
-                slx_stop = w * (j + 1) // nx - stop_border_x
-                if slx_stop == 0:
-                    slx_stop = None
-                slx = slice(w * j // nx - start_border_x, slx_stop, None)
+                slx_stop = (w * (j + 1) // nx - stop_border_x) or None
+                slx_start = w * j // nx - start_border_x
+                slx = slice(slx_start, slx_stop, None)
                 recover_slices.append([sly, slx])
 
         # Here do the subtraction on each stamp
