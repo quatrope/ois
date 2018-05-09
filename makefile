@@ -6,7 +6,7 @@ OBJ = $(addprefix $(OBJ_DIR)/, test_ois_tools.o oistools.o)
 HEADERS = $(SRC_DIR)/ois_tools.h $(TEST_DIR)/test_ois_tools.h
 LIBS = -lm
 
-all: test
+all: testois
 .PHONY: all clean
 
 $(OBJ_DIR):
@@ -18,9 +18,12 @@ src/obj/test_ois_tools.o: src/tests/test_ois_tools.c src/tests/test_ois_tools.h 
 src/obj/oistools.o: src/oistools.c src/oistools.h $(OBJ_DIR)
 	$(CC) -c src/oistools.c -o $(OBJ_DIR)/oistools.o
 
-test: $(OBJ) src/tests/test_main.c
+testois: $(OBJ) src/tests/test_main.c
 	$(CC) -I$(SRC_DIR) -I$(TEST_DIR) $(OBJ) $(TEST_DIR)/test_main.c -o testois
+
+test:
 	./testois
 
 clean:
 	rm -rf $(OBJ_DIR)
+	rm -f testoism
