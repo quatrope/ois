@@ -20,7 +20,7 @@ src/obj/oistools.o: src/oistools.c src/oistools.h $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c src/oistools.c -o $(OBJ_DIR)/oistools.o
 
 testois: $(OBJ) src/tests/test_main.c
-	$(CC) $(CFLAGS) -I$(SRC_DIR) -I$(TEST_DIR) $(OBJ) $(TEST_DIR)/test_main.c -o testois
+	$(CC) $(CFLAGS) -lm -I$(SRC_DIR) -I$(TEST_DIR) $(OBJ) $(TEST_DIR)/test_main.c -o testois
 
 test:
 	./testois
