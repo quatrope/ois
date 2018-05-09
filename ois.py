@@ -358,7 +358,7 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
             return self.coeffs
         import varconv
         c_bkgdegree = -1 if self.bkgdegree is None else self.bkgdegree
-        m, b, conv = varconv.gen_matrix_system(self.img64, self.ref64,
+        m, b = varconv.gen_matrix_system(self.img64, self.ref64,
                                                self.badpixmask is not None,
                                                self.badpixmask,
                                                self.k_side, self.poly_deg,

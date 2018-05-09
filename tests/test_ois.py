@@ -361,7 +361,7 @@ class TestVarConv(unittest.TestCase):
         n, m = 10, 10
         image = np.random.random((n, m))
         refimage = image.copy()
-        mm, b, c = varconv.gen_matrix_system(image, refimage, 0, None,
+        mm, b = varconv.gen_matrix_system(image, refimage, 0, None,
                                              k_side, deg, bkg_deg)
         pol_dof = (deg + 1) * (deg + 2) // 2
         bkg_dof = (bkg_deg + 1) * (bkg_deg + 2) // 2
@@ -369,7 +369,6 @@ class TestVarConv(unittest.TestCase):
         m_dof = pol_dof * k_size + bkg_dof
         self.assertEqual(mm.shape, (m_dof, m_dof))
         self.assertEqual(b.shape, (m_dof,))
-        self.assertEqual(c.shape, (k_size, pol_dof, bkg_dof, n * m))
 
     def test_gen_matrix_system_constantkernel(self):
         deg = 0
@@ -377,7 +376,7 @@ class TestVarConv(unittest.TestCase):
         n, m = 10, 10
         image = np.random.random((n, m))
         refimage = image.copy()
-        mm, b, c = varconv.gen_matrix_system(image, refimage, 0, None,
+        mm, b = varconv.gen_matrix_system(image, refimage, 0, None,
                                              k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         kc = k_side // 2
@@ -394,7 +393,7 @@ class TestVarConv(unittest.TestCase):
         refimage = image.copy()
         mask = np.zeros((n, m), dtype='bool')
         mask[3:5, 3:5]
-        mm, b, c = varconv.gen_matrix_system(image, refimage, 1, mask,
+        mm, b = varconv.gen_matrix_system(image, refimage, 1, mask,
                                              k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         kc = k_side // 2
@@ -419,7 +418,7 @@ class TestVarConv(unittest.TestCase):
         kernel = np.random.random((k_side, k_side, pol_dof))
         refimage = np.random.random((10, 10))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
-        mm, b, c = varconv.gen_matrix_system(image, refimage, 0, None,
+        mm, b = varconv.gen_matrix_system(image, refimage, 0, None,
                                              k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
@@ -443,7 +442,7 @@ class TestVarConv(unittest.TestCase):
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
-        mm, b, c = varconv.gen_matrix_system(image, refimage, 0, None,
+        mm, b = varconv.gen_matrix_system(image, refimage, 0, None,
                                              k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
@@ -467,7 +466,7 @@ class TestVarConv(unittest.TestCase):
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
-        mm, b, c = varconv.gen_matrix_system(image, refimage, 1, mask,
+        mm, b = varconv.gen_matrix_system(image, refimage, 1, mask,
                                              k_side, deg, -1)
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))

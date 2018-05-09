@@ -53,13 +53,13 @@ lin_system build_matrix_system(int n, int m, double* image, double* refimage,
     }
 
     free(Conv);
-    lin_system the_system = {n, m, M, b};
+    lin_system the_system = {total_dof, M, b};
 
     return the_system;
 }
 
 
-double* convolve2d_adaptive(int n, int m, double* image,
+void convolve2d_adaptive(int n, int m, double* image,
                             int kernel_height, int kernel_width,
                             int kernel_polydeg, double* kernel,
                             double* Conv)
@@ -99,8 +99,6 @@ double* convolve2d_adaptive(int n, int m, double* image,
 
         } // conv_col
     } // conv_row
-
-    return Conv;
 
 }
 

@@ -8,8 +8,12 @@ with open('ois.py', 'r') as f:
             _, _, ois_version = line.replace("'", '').split()
             break
 
-varconv = Extension('varconv', sources=['src/varconv.c'],
+varconv = Extension('varconv',
+                    sources=['src/varconv.c', 'src/oistools.c'],
+                    include_dirs = ['src'],
+                    libraries = ['m'],
                     extra_compile_args=["-std=c99"])
+
 
 setup(name='ois',
       version=ois_version,
