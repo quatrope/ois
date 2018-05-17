@@ -27,4 +27,4 @@ test:
 
 clean:
 	rm -rf $(OBJ_DIR)
-	rm -f testoism
+	rm -f testois
