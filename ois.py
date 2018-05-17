@@ -27,7 +27,7 @@
 """
 
 
-__version__ = '0.1.4.dev1'
+__version__ = '0.1.4'
 
 import numpy as np
 from scipy import signal
