@@ -6,6 +6,7 @@
 [![DOI](https://zenodo.org/badge/49916188.svg)](https://zenodo.org/badge/latestdoi/49916188)
 [![Updates](https://pyup.io/repos/github/toros-astro/ois/shield.svg)](https://pyup.io/repos/github/toros-astro/ois/)
 [![Python 3](https://pyup.io/repos/github/toros-astro/ois/python-3-shield.svg)](https://pyup.io/repos/github/toros-astro/ois/)
+[![PyPI version](https://badge.fury.io/py/ois.svg)](https://badge.fury.io/py/ois)
 
 ***OIS*** is a package to perform optimal image subtraction on astronomical images.
 
