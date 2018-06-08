@@ -11,26 +11,36 @@
 static PyObject *
 varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
-    PyArrayObject *np_image, *np_refimage, *np_mask;
+    PyObject *py_sciimage, *py_refimage;
+    PyArrayObject *np_mask;
     int k_side;
     int kernel_polydeg; // The degree of the varying polynomial for the kernel
     int bkg_deg; // The degree of the varying polynomial for the background
     unsigned char hasmask;
 
-    if (!PyArg_ParseTuple(args, "O!O!bOiii", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_refimage, &hasmask, &np_mask,
+    if (!PyArg_ParseTuple(args, "OObOiii", 
+            &py_sciimage, &py_refimage, &hasmask, &np_mask,
             &k_side, &kernel_polydeg, &bkg_deg)) {
         return NULL;
     }
-    if (NULL == np_image) return NULL;
-    if (NULL == np_refimage) return NULL;
+    PyArrayObject *np_sciimage = (PyArrayObject *)PyArray_FROM_OTF(py_sciimage, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if (np_sciimage == NULL) {
+        Py_XDECREF(np_sciimage);
+        return NULL;
+    }
+    PyArrayObject *np_refimage = (PyArrayObject *)PyArray_FROM_OTF(py_refimage, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if (np_refimage == NULL) {
+        Py_XDECREF(np_sciimage);
+        Py_XDECREF(np_refimage);
+        return NULL;
+    }
     if (NULL == np_mask) return NULL;
 
-    int n = np_image->dimensions[0];
-    int m = np_image->dimensions[1];
+    double* sciimage = (double*)PyArray_DATA(np_sciimage);
+    double* refimage = (double*)PyArray_DATA(np_refimage);
+    int n = (int)PyArray_DIM(np_sciimage, 0);
+    int m = (int)PyArray_DIM(np_sciimage, 1);
 
-    double* image = (double*)np_image->data;
-    double* refimage = (double*)np_refimage->data;
     char* mask;
     if (hasmask == 1) {
         mask = (char*)np_mask->data;
@@ -39,16 +49,21 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
     }
 
     lin_system result_sys = build_matrix_system(\
-    n, m, image, refimage, k_side, k_side,\
+    n, m, sciimage, refimage, k_side, k_side,\
     kernel_polydeg, bkg_deg, mask);
+
+    Py_DECREF(np_sciimage);
+    Py_DECREF(np_refimage);
 
     int total_dof = result_sys.b_dim;
     npy_intp Mdims[2] = {total_dof, total_dof};
     npy_intp bdims = total_dof;
-    PyObject* pyM = PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, result_sys.M);
-    PyObject* pyb = PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, result_sys.b);
+    PyArrayObject* pyM = (PyArrayObject *)PyArray_SimpleNewFromData(2, Mdims, NPY_DOUBLE, result_sys.M);
+    PyArray_ENABLEFLAGS(pyM, NPY_ARRAY_OWNDATA);
+    PyArrayObject* pyb = (PyArrayObject *)PyArray_SimpleNewFromData(1, &bdims, NPY_DOUBLE, result_sys.b);
+    PyArray_ENABLEFLAGS(pyb, NPY_ARRAY_OWNDATA);
 
-    return Py_BuildValue("OO", pyM, pyb);
+    return Py_BuildValue("NN", pyM, pyb);
 }
 
 

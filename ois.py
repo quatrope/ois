@@ -314,16 +314,6 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         self.poly_dof = (poly_degree + 1) * (poly_degree + 2) // 2
         self.k_side = kernelshape[0]
 
-        # Check here for types
-        if image.dtype != np.float64:
-            self.img64 = image.astype('float64')
-        else:
-            self.img64 = image
-        if refimage.dtype != np.float64:
-            self.ref64 = refimage.astype('float64')
-        else:
-            self.ref64 = refimage
-
         super(AdaptiveBramichStrategy, self).\
             __init__(image, refimage, kernelshape, bkgdegree)
 
@@ -334,7 +324,7 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
             return self.optimal_image
         import varconv
         opt_image = varconv.convolve2d_adaptive(
-            self.ref64, self.get_kernel(), self.poly_deg)
+            self.refimage, self.get_kernel(), self.poly_deg)
         if self.bkgdegree is not None:
             opt_image += self.get_background()
         if self.badpixmask is not None:
@@ -357,12 +347,11 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         if self.coeffs is not None:
             return self.coeffs
         import varconv
-        c_bkgdegree = -1 if self.bkgdegree is None else self.bkgdegree
-        m, b = varconv.gen_matrix_system(self.img64, self.ref64,
+        m, b = varconv.gen_matrix_system(self.image, self.refimage,
                                                self.badpixmask is not None,
                                                self.badpixmask,
                                                self.k_side, self.poly_deg,
-                                               c_bkgdegree)
+                                               self.bkgdegree or -1)
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
 
