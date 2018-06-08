@@ -15,7 +15,6 @@ install:
 
 script:
   - make; make test
-  - python setup.py test
   - coverage run --source=ois.py setup.py test
 
 after_success:

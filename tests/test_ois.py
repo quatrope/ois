@@ -350,7 +350,7 @@ class TestGrid(unittest.TestCase):
         self.the_grid_test("Bramich")
 
     def test_AdaptiveBramich_grid(self):
-        self.the_grid_test("AdaptiveBramich", poly_degree=2)
+        self.the_grid_test("AdaptiveBramich", poly_degree=1)
 
 
 class TestVarConv(unittest.TestCase):

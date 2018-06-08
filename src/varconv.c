@@ -11,15 +11,14 @@
 static PyObject *
 varconv_gen_matrix_system(PyObject *self, PyObject *args)
 {
-    PyObject *py_sciimage, *py_refimage;
-    PyArrayObject *np_mask;
+    PyObject *py_sciimage, *py_refimage, *py_mask;
     int k_side;
     int kernel_polydeg; // The degree of the varying polynomial for the kernel
     int bkg_deg; // The degree of the varying polynomial for the background
     unsigned char hasmask;
 
     if (!PyArg_ParseTuple(args, "OObOiii", 
-            &py_sciimage, &py_refimage, &hasmask, &np_mask,
+            &py_sciimage, &py_refimage, &hasmask, &py_mask,
             &k_side, &kernel_polydeg, &bkg_deg)) {
         return NULL;
     }
@@ -34,18 +33,23 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
         Py_XDECREF(np_refimage);
         return NULL;
     }
-    if (NULL == np_mask) return NULL;
 
     double* sciimage = (double*)PyArray_DATA(np_sciimage);
     double* refimage = (double*)PyArray_DATA(np_refimage);
     int n = (int)PyArray_DIM(np_sciimage, 0);
     int m = (int)PyArray_DIM(np_sciimage, 1);
 
-    char* mask;
+    PyArrayObject *np_mask = NULL;
+    char* mask = NULL;
     if (hasmask == 1) {
-        mask = (char*)np_mask->data;
-    } else {
-        mask = NULL;
+        np_mask = (PyArrayObject *)PyArray_FROM_OTF(py_mask, NPY_UBYTE, NPY_ARRAY_IN_ARRAY);
+        if (np_mask == NULL) {
+            Py_XDECREF(np_mask);
+            Py_XDECREF(np_sciimage);
+            Py_XDECREF(np_refimage);
+            return NULL;
+        }
+        mask = (char*)PyArray_DATA(np_mask);
     }
 
     lin_system result_sys = build_matrix_system(\
@@ -114,7 +118,7 @@ static PyMethodDef VarConvMethods[] = {
     {"gen_matrix_system", varconv_gen_matrix_system, METH_VARARGS,
      "Generate the matrix system to find best convolution parameters."},
     {"convolve2d_adaptive", varconv_convolve2d_adaptive, METH_VARARGS,
-     "Convolves image with an adaptive kernel."},
+     "Convolves image with a variable kernel."},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
