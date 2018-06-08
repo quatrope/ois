@@ -366,17 +366,7 @@ def convolve2d_adaptive(image, kernel, poly_degree):
     if kernel.ndim != 3:
         raise ValueError("Wrong dimensions for kernel")
 
-    # Check here for types
-    if image.dtype != np.float64:
-        img64 = image.astype('float64')
-    else:
-        img64 = image
-    if kernel.dtype != np.float64:
-        k64 = kernel.astype('float64')
-    else:
-        k64 = kernel
-
-    conv = varconv.convolve2d_adaptive(img64, k64, poly_degree)
+    conv = varconv.convolve2d_adaptive(image, kernel, poly_degree)
     return conv
 
 

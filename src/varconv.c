@@ -69,29 +69,44 @@ varconv_gen_matrix_system(PyObject *self, PyObject *args)
 
 static PyObject *
 varconv_convolve2d_adaptive(PyObject *self, PyObject *args) {
-    PyArrayObject *np_image, *np_kernelcoeffs;
+    PyObject *py_image, *py_kernelcoeffs;
     int k_polydeg; // The degree of the varying polynomial
 
-    if (!PyArg_ParseTuple(args, "O!O!i", &PyArray_Type, &np_image,
-            &PyArray_Type, &np_kernelcoeffs, &k_polydeg))  return NULL;
-    if (NULL == np_image) return NULL;
-    if (NULL == np_kernelcoeffs) return NULL;
+    if (!PyArg_ParseTuple(args, "OOi",
+            &py_image, &py_kernelcoeffs, &k_polydeg))  return NULL;
+    PyArrayObject *np_image = (PyArrayObject *)PyArray_FROM_OTF(
+        py_image, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if (np_image == NULL) {
+        Py_XDECREF(np_image);
+        return NULL;
+    }
+    PyArrayObject *np_kernelcoeffs = (PyArrayObject *)PyArray_FROM_OTF(
+        py_kernelcoeffs, NPY_DOUBLE, NPY_ARRAY_IN_ARRAY);
+    if (np_kernelcoeffs == NULL) {
+        Py_XDECREF(np_image);
+        Py_XDECREF(np_kernelcoeffs);
+        return NULL;
+    }
 
-    int n = np_image->dimensions[0];
-    int m = np_image->dimensions[1];
-    int k_height = np_kernelcoeffs->dimensions[0];
-    int k_width = np_kernelcoeffs->dimensions[1];
+    int n = (int)PyArray_DIM(np_image, 0);
+    int m = (int)PyArray_DIM(np_image, 1);
+    int k_height = (int)PyArray_DIM(np_kernelcoeffs, 0);
+    int k_width = (int)PyArray_DIM(np_kernelcoeffs, 1);
 
-    double* image = (double*)np_image->data;
-    double* k_coeffs = (double*)np_kernelcoeffs->data;
+    double* image = (double*)PyArray_DATA(np_image);
+    double* k_coeffs = (double*)PyArray_DATA(np_kernelcoeffs);
     
     double* Conv = (double*)calloc(n * m, sizeof(*Conv));
     convolve2d_adaptive(n, m, image, k_height, k_width, k_polydeg, k_coeffs, Conv);
 
-    npy_intp Convdims[2] = {n, m};
-    PyObject* pyConv = PyArray_SimpleNewFromData(2, Convdims, NPY_DOUBLE, Conv);
+    Py_XDECREF(np_image);
+    Py_XDECREF(np_kernelcoeffs);
 
-    return Py_BuildValue("O", pyConv);
+    npy_intp Convdims[2] = {n, m};
+    PyArrayObject* pyConv = (PyArrayObject *)PyArray_SimpleNewFromData(2, Convdims, NPY_DOUBLE, Conv);
+    PyArray_ENABLEFLAGS(pyConv, NPY_ARRAY_OWNDATA);
+
+    return Py_BuildValue("N", pyConv);
 
 }
 
