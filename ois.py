@@ -228,7 +228,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
                     ind += 1
             kernel *= gaussk
         self.kernel = kernel
-        return self.kernel        
+        return self.kernel
 
     def get_coeffs(self):
         if self.coeffs is not None:
@@ -239,8 +239,18 @@ class AlardLuptonStrategy(SubtractionStrategy):
             c.extend(c_bkg)
 
         if self.badpixmask is None:
-            m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
-            b = np.array([(self.image * ci).sum() for ci in c])
+            n_c = len(c)
+            m = np.zeros((n_c, n_c))
+            b = np.zeros(n_c)
+            for j, cj in enumerate(c):
+                for i in range(j, n_c):
+                #for i, ci in enumerate(c):
+                    m[j, i] = np.vdot(cj, c[i])
+                    m[i, j] = m[j, i]
+                b[j] = np.vdot(self.image, cj)
+
+            # m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
+            # b = np.array([(self.image * ci).sum() for ci in c])
         else:
             # These next two lines take most of the computation time
             m = np.array([[(ci * cj)[~self.badpixmask].sum()
@@ -296,8 +306,17 @@ class BramichStrategy(SubtractionStrategy):
             c.extend(c_bkg)
 
         if self.badpixmask is None:
-            m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
-            b = np.array([(self.image * ci).sum() for ci in c])
+            n_c = len(c)
+            m = np.zeros((n_c, n_c))
+            b = np.zeros(n_c)
+            for j, cj in enumerate(c):
+                for i in range(j, n_c):
+                    m[j, i] = np.vdot(cj, c[i])
+                    m[i, j] = m[j, i]
+                b[j] = np.vdot(self.image, cj)
+
+            # m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
+            # b = np.array([(self.image * ci).sum() for ci in c])
         else:
             # These next two lines take most of the computation time
             m = np.array([[(ci * cj)[~self.badpixmask].sum()
