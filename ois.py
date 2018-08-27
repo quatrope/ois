@@ -242,12 +242,12 @@ class AlardLuptonStrategy(SubtractionStrategy):
             n_c = len(c)
             m = np.zeros((n_c, n_c))
             b = np.zeros(n_c)
-            for j, cj in enumerate(c):
-                for i in range(j, n_c):
-                #for i, ci in enumerate(c):
-                    m[j, i] = np.vdot(cj, c[i])
-                    m[i, j] = m[j, i]
-                b[j] = np.vdot(self.image, cj)
+            for j in range(n_c):
+                for i in range(n_c):
+                    if i<=j:
+                        m[j, i] = np.vdot(c[j], c[i])
+                        m[i, j] = m[j, i]
+                    b[j] = np.vdot(self.image, c[j])
 
             # m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
             # b = np.array([(self.image * ci).sum() for ci in c])
@@ -309,11 +309,12 @@ class BramichStrategy(SubtractionStrategy):
             n_c = len(c)
             m = np.zeros((n_c, n_c))
             b = np.zeros(n_c)
-            for j, cj in enumerate(c):
-                for i in range(j, n_c):
-                    m[j, i] = np.vdot(cj, c[i])
-                    m[i, j] = m[j, i]
-                b[j] = np.vdot(self.image, cj)
+            for j in range(n_c):
+                for i in range(n_c):
+                    if i<=j:
+                        m[j, i] = np.vdot(c[j], c[i])
+                        m[i, j] = m[j, i]
+                    b[j] = np.vdot(self.image, c[j])
 
             # m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
             # b = np.array([(self.image * ci).sum() for ci in c])
