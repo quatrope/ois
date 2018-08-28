@@ -238,10 +238,10 @@ class AlardLuptonStrategy(SubtractionStrategy):
             c_bkg = self.get_cmatrices_background()
             c.extend(c_bkg)
 
+        n_c = len(c)
+        m = np.zeros((n_c, n_c))
+        b = np.zeros(n_c)
         if self.badpixmask is None:
-            n_c = len(c)
-            m = np.zeros((n_c, n_c))
-            b = np.zeros(n_c)
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
                     m[j, i] = np.vdot(cj, c[i])
@@ -251,11 +251,15 @@ class AlardLuptonStrategy(SubtractionStrategy):
             # m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
             # b = np.array([(self.image * ci).sum() for ci in c])
         else:
+            for j, cj in enumerate(c):
+                for i in range(j, n_c):
+                    m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
+                    m[i, j] = m[j, i]
+                b[j] = (self.image * cj)[~self.badpixmask].sum()
+
             # These next two lines take most of the computation time
-            m = np.array([[(ci * cj)[~self.badpixmask].sum()
-                         for ci in c] for cj in c])
-            b = np.array([(self.image * ci)[~self.badpixmask].sum()
-                         for ci in c])
+            #~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
+            #~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
 
@@ -304,10 +308,10 @@ class BramichStrategy(SubtractionStrategy):
             c_bkg = self.get_cmatrices_background()
             c.extend(c_bkg)
 
+        n_c = len(c)
+        m = np.zeros((n_c, n_c))
+        b = np.zeros(n_c)
         if self.badpixmask is None:
-            n_c = len(c)
-            m = np.zeros((n_c, n_c))
-            b = np.zeros(n_c)
             for j, cj in enumerate(c):
                 cj = cj.flatten()
                 for i in range(j, n_c):
@@ -317,11 +321,15 @@ class BramichStrategy(SubtractionStrategy):
             #~ m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
             #~ b = np.array([(self.image * ci).sum() for ci in c])
         else:
+            for j, cj in enumerate(c):
+                for i in range(j, n_c):
+                    m[j, i] = (c[i] * cj)[~self.badpixmask].sum()
+                    m[i, j] = m[j, i]
+                b[j] = (self.image * cj)[~self.badpixmask].sum()
+
             # These next two lines take most of the computation time
-            m = np.array([[(ci * cj)[~self.badpixmask].sum()
-                         for ci in c] for cj in c])
-            b = np.array([(self.image * ci)[~self.badpixmask].sum()
-                         for ci in c])
+            #~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
+            #~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
 
