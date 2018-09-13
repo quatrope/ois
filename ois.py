@@ -313,8 +313,9 @@ class BramichStrategy(SubtractionStrategy):
         b = np.zeros(n_c)
         if self.badpixmask is None:
             for j, cj in enumerate(c):
+                cj = np.asarray(cj, order='C')
                 for i in range(j, n_c):
-                    m[j, i] = np.tensordot(cj, c[i])
+                    m[j, i] = np.tensordot(cj, np.asarray(c[i], order='C'))
                     m[i, j] = m[j, i]
                 b[j] = np.vdot(self.image, cj.flatten())
             #~ m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
