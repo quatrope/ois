@@ -8,8 +8,11 @@ with open('ois.py', 'r') as f:
             _, _, ois_version = line.replace("'", '').split()
             break
 
+with open('README.md', 'r') as f:
+    long_description = f.read()
+
 varconv = Extension('varconv',
-                    sources=['src/varconv.c', 'src/oistools.c'],
+                    sources=['src/varconv.c', 'src/oistools.c', 'src/oistools.h'],
                     include_dirs = ['src'],
                     libraries = ['m'],
                     extra_compile_args=["-std=c99"])
@@ -18,6 +21,8 @@ varconv = Extension('varconv',
 setup(name='ois',
       version=ois_version,
       description='Optimal Image Subtraction',
+      long_description=long_description,
+      long_description_content_type='text/markdown',
       author='Martin Beroiz',
       author_email='martinberoiz@gmail.com',
       url='https://github.com/toros-astro/ois',
