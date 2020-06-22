@@ -17,7 +17,9 @@ lin_system build_matrix_system(int n, int m, double* image, double* refimage,
     int bkg_dof;
 
     bkg_dof = (bkg_deg + 1) * (bkg_deg + 2) / 2;
-    double* Conv = calloc(img_size * (kernel_size * poly_degree + bkg_dof), sizeof(*Conv));
+
+    long conv_size = ((long) img_size) * (kernel_size * poly_degree + bkg_dof);
+    double* Conv = calloc(conv_size, sizeof(*Conv));
 
     fill_c_matrices_for_kernel(kernel_height, kernel_width, kernel_polydeg, n, m, refimage, Conv);
     double* Conv_bkg;
