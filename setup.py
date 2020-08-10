@@ -12,7 +12,7 @@ with open('README.md', 'r') as f:
     long_description = f.read()
 
 varconv = Extension('varconv',
-                    sources=['src/varconv.c', 'src/oistools.c', 'src/oistools.h'],
+                    sources=['src/varconv.c', 'src/oistools.c'],
                     include_dirs = ['src'],
                     libraries = ['m'],
                     extra_compile_args=["-std=c99"])
