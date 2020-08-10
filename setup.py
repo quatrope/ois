@@ -13,7 +13,7 @@ with open('README.md', 'r') as f:
 
 varconv = Extension('varconv',
                     sources=['src/varconv.c', 'src/oistools.c'],
-                    include_dirs = ['src'],
+                    include_dirs = ['src', numpy.get_include()],
                     libraries = ['m'],
                     extra_compile_args=["-std=c99"])
 
@@ -28,7 +28,7 @@ setup(name='ois',
       url='https://github.com/toros-astro/ois',
       py_modules=['ois', ],
       ext_modules=[varconv],
-      include_dirs=[numpy.get_include()],
+      # include_dirs=[numpy.get_include()],
       install_requires=["numpy>=1.6",
                         "scipy>=0.16"],
       test_suite='tests',
