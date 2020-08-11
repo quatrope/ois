@@ -1,23 +1,42 @@
+dist: xenial
+
 language: python
 
-python:
-  - "2.7"
-  - "3.5"
-  - "3.6"
-  - "3.7"
-
-before_install:
-  - pip install --upgrade pip setuptools wheel
-
 install:
-  - pip uninstall -y numpy
-  - pip install --only-binary=numpy,scipy numpy scipy
-  - pip install pillow
-  - pip install codecov
+  - pip install numpy
+  - pip install tox
 
 script:
-  - make; make test
-  - coverage run --source=ois setup.py test
+  - tox -r
 
-after_success:
-  - codecov
+jobs:
+    include:
+        - env: TOXENV=coverage
+          python: 3.7
+
+        - env: TOXENV=py27
+          python: 2.7
+
+        - env: TOXENV=py35
+          python: 3.5
+
+        - env: TOXENV=py36
+          python: 3.6
+
+        - env: TOXENV=py37
+          python: 3.7
+
+        - env: TOXENV=py38
+          python: 3.8
+
+        - language: c
+          compiler: clang
+          script:
+            - make
+            - make test
+
+        - language: c
+          compiler: gcc
+          script:
+            - make
+            - make test

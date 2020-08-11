@@ -1,4 +1,3 @@
-CC = gcc
 CFLAGS = -std=c99
 SRC_DIR = src
 TEST_DIR = $(SRC_DIR)/tests
