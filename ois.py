@@ -27,7 +27,7 @@
 """
 
 
-__version__ = '0.1.4'
+__version__ = "0.1.4"
 
 import numpy as np
 from scipy import signal
@@ -46,7 +46,6 @@ def _has_mask(image):
 
 
 class SubtractionStrategy(object):
-
     def __init__(self, image, refimage, kernelshape, bkgdegree):
         self.k_shape = kernelshape
 
@@ -58,8 +57,9 @@ class SubtractionStrategy(object):
         if image.shape != refimage.shape:
             raise ValueError("Images have different shapes")
         self.h, self.w = image.shape
-        self.image, self.refimage, self.badpixmask =\
-            self.separate_data_mask(image, refimage)
+        self.image, self.refimage, self.badpixmask = self.separate_data_mask(
+            image, refimage
+        )
 
         self.coeffs = None
         self.bkgdegree = bkgdegree
@@ -75,11 +75,12 @@ class SubtractionStrategy(object):
             else:
                 image_data = image
             return image_data
+
         badpixmask = None
         if _has_mask(refimage):
             badpixmask = ndimage.binary_dilation(
-                refimage.mask.astype('uint8'),
-                structure=np.ones(self.k_shape)).astype('bool')
+                refimage.mask.astype("uint8"), structure=np.ones(self.k_shape)
+            ).astype("bool")
             if _has_mask(image):
                 badpixmask += image.mask
         elif _has_mask(image):
@@ -96,7 +97,7 @@ class SubtractionStrategy(object):
         mybkg = np.zeros(self.image.shape)
         ind = 0
         for i, anX in enumerate(allxs):
-            for aY in allys[:bkgdeg + 1 - i]:
+            for aY in allys[: bkgdeg + 1 - i]:
                 mybkg += coeffs[ind] * anX * aY
                 ind += 1
         return mybkg
@@ -106,8 +107,11 @@ class SubtractionStrategy(object):
         y, x = np.mgrid[:h, :w]
         allxs = [pow(x, i) for i in range(self.bkgdegree + 1)]
         allys = [pow(y, i) for i in range(self.bkgdegree + 1)]
-        bkg_c = [anX * aY for i, anX in enumerate(allxs)
-                 for aY in allys[:self.bkgdegree + 1 - i]]
+        bkg_c = [
+            anX * aY
+            for i, anX in enumerate(allxs)
+            for aY in allys[: self.bkgdegree + 1 - i]
+        ]
         return bkg_c
 
     def get_coeffs():
@@ -117,8 +121,7 @@ class SubtractionStrategy(object):
     def get_optimal_image(self):
         if self.optimal_image is not None:
             return self.optimal_image
-        opt_image = signal.convolve2d(
-            self.refimage, self.get_kernel(), mode='same')
+        opt_image = signal.convolve2d(self.refimage, self.get_kernel(), mode="same")
         if self.bkgdegree is not None:
             opt_image += self.get_background()
         if self.badpixmask is not None:
@@ -147,18 +150,17 @@ class SubtractionStrategy(object):
             return self.difference
         opt_image = self.get_optimal_image()
         if self.badpixmask is not None:
-            self.difference = np.ma.array(
-                self.image - opt_image, mask=self.badpixmask)
+            self.difference = np.ma.array(self.image - opt_image, mask=self.badpixmask)
         else:
             self.difference = self.image - opt_image
         return self.difference
 
 
 class AlardLuptonStrategy(SubtractionStrategy):
-
     def __init__(self, image, refimage, kernelshape, bkgdegree, gausslist):
-        super(AlardLuptonStrategy, self).\
-            __init__(image, refimage, kernelshape, bkgdegree)
+        super(AlardLuptonStrategy, self).__init__(
+            image, refimage, kernelshape, bkgdegree
+        )
         if gausslist is None:
             self.gausslist = [{}]
         else:
@@ -175,31 +177,32 @@ class AlardLuptonStrategy(SubtractionStrategy):
 
     def clean_gausslist(self):
         for agauss in self.gausslist:
-            if 'center' not in agauss:
+            if "center" not in agauss:
                 h, w = self.k_shape
-                agauss['center'] = ((h - 1) // 2., (w - 1) // 2.)
-            if 'modPolyDeg' not in agauss:
-                agauss['modPolyDeg'] = 2
-            if 'sx' not in agauss:
-                agauss['sx'] = 2.
-            if 'sy' not in agauss:
-                agauss['sy'] = 2.
+                agauss["center"] = ((h - 1) // 2.0, (w - 1) // 2.0)
+            if "modPolyDeg" not in agauss:
+                agauss["modPolyDeg"] = 2
+            if "sx" not in agauss:
+                agauss["sx"] = 2.0
+            if "sy" not in agauss:
+                agauss["sy"] = 2.0
 
     def get_cmatrices(self):
         kh, kw = self.k_shape
         v, u = np.mgrid[:kh, :kw]
         c = []
         for aGauss in self.gausslist:
-            n = aGauss['modPolyDeg'] + 1
+            n = aGauss["modPolyDeg"] + 1
             allus = [pow(u, i) for i in range(n)]
             allvs = [pow(v, i) for i in range(n)]
-            gaussk = self.gauss(center=aGauss['center'],
-                                sx=aGauss['sx'], sy=aGauss['sy'])
-            newc = [signal.convolve2d(self.refimage, gaussk * aU * aV,
-                                      mode='same')
-                    for i, aU in enumerate(allus)
-                    for aV in allvs[:n - i]
-                    ]
+            gaussk = self.gauss(
+                center=aGauss["center"], sx=aGauss["sx"], sy=aGauss["sy"]
+            )
+            newc = [
+                signal.convolve2d(self.refimage, gaussk * aU * aV, mode="same")
+                for i, aU in enumerate(allus)
+                for aV in allvs[: n - i]
+            ]
             c.extend(newc)
         return c
 
@@ -208,7 +211,7 @@ class AlardLuptonStrategy(SubtractionStrategy):
             return self.kernel
         nkcoeffs = 0
         for aGauss in self.gausslist:
-            n = aGauss['modPolyDeg'] + 1
+            n = aGauss["modPolyDeg"] + 1
             nkcoeffs += n * (n + 1) // 2
         coeffs = self.get_coeffs()
         kcoeffs = coeffs[:nkcoeffs]
@@ -216,14 +219,15 @@ class AlardLuptonStrategy(SubtractionStrategy):
         v, u = np.mgrid[:kh, :kw]
         kernel = np.zeros((kh, kw))
         for aGauss in self.gausslist:
-            n = aGauss['modPolyDeg'] + 1
+            n = aGauss["modPolyDeg"] + 1
             allus = [pow(u, i) for i in range(n)]
             allvs = [pow(v, i) for i in range(n)]
-            gaussk = self.gauss(center=aGauss['center'],
-                                sx=aGauss['sx'], sy=aGauss['sy'])
+            gaussk = self.gauss(
+                center=aGauss["center"], sx=aGauss["sx"], sy=aGauss["sy"]
+            )
             ind = 0
             for i, aU in enumerate(allus):
-                for aV in allvs[:n - i]:
+                for aV in allvs[: n - i]:
                     kernel += kcoeffs[ind] * aU * aV
                     ind += 1
             kernel *= gaussk
@@ -258,14 +262,13 @@ class AlardLuptonStrategy(SubtractionStrategy):
                 b[j] = (self.image * cj)[~self.badpixmask].sum()
 
             # These next two lines take most of the computation time
-            #~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
-            #~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
+            # ~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
+            # ~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
 
 
 class BramichStrategy(SubtractionStrategy):
-
     def get_cmatrices(self):
         kh, kw = self.k_shape
         h, w = self.refimage.shape
@@ -281,8 +284,9 @@ class BramichStrategy(SubtractionStrategy):
                 min_r_ref = max(0, kh // 2 - i)
                 max_c_ref = min(w, w - j + kw // 2)
                 min_c_ref = max(0, kw // 2 - j)
-                cij[min_r:max_r, min_c:max_c] = \
-                    self.refimage[min_r_ref:max_r_ref, min_c_ref:max_c_ref]
+                cij[min_r:max_r, min_c:max_c] = self.refimage[
+                    min_r_ref:max_r_ref, min_c_ref:max_c_ref
+                ]
                 c.extend([cij])
 
         # This is more pythonic but much slower (50 times slower)
@@ -297,7 +301,7 @@ class BramichStrategy(SubtractionStrategy):
             return self.kernel
         coeffs = self.get_coeffs()
         kh, kw = self.k_shape
-        self.kernel = coeffs[:(kh * kw)].reshape(self.k_shape)
+        self.kernel = coeffs[: (kh * kw)].reshape(self.k_shape)
         return self.kernel
 
     def get_coeffs(self):
@@ -313,13 +317,13 @@ class BramichStrategy(SubtractionStrategy):
         b = np.zeros(n_c)
         if self.badpixmask is None:
             for j, cj in enumerate(c):
-                cj = np.asarray(cj, order='C')
+                cj = np.asarray(cj, order="C")
                 for i in range(j, n_c):
-                    m[j, i] = np.tensordot(cj, np.asarray(c[i], order='C'))
+                    m[j, i] = np.tensordot(cj, np.asarray(c[i], order="C"))
                     m[i, j] = m[j, i]
                 b[j] = np.vdot(self.image, cj.flatten())
-            #~ m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
-            #~ b = np.array([(self.image * ci).sum() for ci in c])
+            # ~ m = np.array([[(ci * cj).sum() for ci in c] for cj in c])
+            # ~ b = np.array([(self.image * ci).sum() for ci in c])
         else:
             for j, cj in enumerate(c):
                 for i in range(j, n_c):
@@ -328,8 +332,8 @@ class BramichStrategy(SubtractionStrategy):
                 b[j] = (self.image * cj)[~self.badpixmask].sum()
 
             # These next two lines take most of the computation time
-            #~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
-            #~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
+            # ~ m = np.array([[(ci * cj)[~self.badpixmask].sum() for ci in c] for cj in c])
+            # ~ b = np.array([(self.image * ci)[~self.badpixmask].sum() for ci in c])
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
 
@@ -340,8 +344,9 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         self.poly_dof = (poly_degree + 1) * (poly_degree + 2) // 2
         self.k_side = kernelshape[0]
 
-        super(AdaptiveBramichStrategy, self).\
-            __init__(image, refimage, kernelshape, bkgdegree)
+        super(AdaptiveBramichStrategy, self).__init__(
+            image, refimage, kernelshape, bkgdegree
+        )
 
     def get_optimal_image(self):
         # AdaptiveBramich has to override this function because it uses a
@@ -349,8 +354,10 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         if self.optimal_image is not None:
             return self.optimal_image
         import varconv
+
         opt_image = varconv.convolve2d_adaptive(
-            self.refimage, self.get_kernel(), self.poly_deg)
+            self.refimage, self.get_kernel(), self.poly_deg
+        )
         if self.bkgdegree is not None:
             opt_image += self.get_background()
         if self.badpixmask is not None:
@@ -373,11 +380,16 @@ class AdaptiveBramichStrategy(SubtractionStrategy):
         if self.coeffs is not None:
             return self.coeffs
         import varconv
-        m, b = varconv.gen_matrix_system(self.image, self.refimage,
-                                               self.badpixmask is not None,
-                                               self.badpixmask,
-                                               self.k_side, self.poly_deg,
-                                               self.bkgdegree or -1)
+
+        m, b = varconv.gen_matrix_system(
+            self.image,
+            self.refimage,
+            self.badpixmask is not None,
+            self.badpixmask,
+            self.k_side,
+            self.poly_deg,
+            self.bkgdegree or -1,
+        )
         self.coeffs = np.linalg.solve(m, b)
         return self.coeffs
 
@@ -415,8 +427,15 @@ def eval_adpative_kernel(kernel, x, y):
     return k_xy
 
 
-def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
-                   method="Bramich", gridshape=None, **kwargs):
+def optimal_system(
+    image,
+    refimage,
+    kernelshape=(11, 11),
+    bkgdegree=None,
+    method="Bramich",
+    gridshape=None,
+    **kwargs
+):
     """Do Optimal Image Subtraction and return optimal image, kernel
     and background.
 
@@ -468,9 +487,11 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
         raise EvenSideKernelError("Kernel sides must be odd.")
 
     DefaultStrategy = BramichStrategy  # noqa
-    all_strategies = {"AdaptiveBramich": AdaptiveBramichStrategy,
-                      "Bramich": BramichStrategy,
-                      "Alard-Lupton": AlardLuptonStrategy}
+    all_strategies = {
+        "AdaptiveBramich": AdaptiveBramichStrategy,
+        "Bramich": BramichStrategy,
+        "Alard-Lupton": AlardLuptonStrategy,
+    }
     try:
         DiffStrategy = all_strategies[method]  # noqa
     except KeyError:
@@ -478,8 +499,7 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
 
     if gridshape is None or gridshape == (1, 1):
         # If there's no grid, do without it
-        subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree,
-                                  **kwargs)
+        subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree, **kwargs)
         opt_image = subt_strat.get_optimal_image()
         kernel = subt_strat.get_kernel()
         background = subt_strat.get_background()
@@ -499,17 +519,27 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
         # subtract the kernel spill k_spill and then we clip to keep it inside
         # image boundaries.
         k_spill = (kh - 1) // 2
-        slc_wborder_y = [slice(np.clip(h * i // ny - k_spill, 0, h),
-                               np.clip(h * (i + 1) // ny + k_spill, 0, h),
-                               None) for i in range(ny)]
-        slc_wborder_x = [slice(np.clip(w * i // nx - k_spill, 0, w),
-                               np.clip(w * (i + 1) // nx + k_spill, 0, w),
-                               None) for i in range(nx)]
+        slc_wborder_y = [
+            slice(
+                np.clip(h * i // ny - k_spill, 0, h),
+                np.clip(h * (i + 1) // ny + k_spill, 0, h),
+                None,
+            )
+            for i in range(ny)
+        ]
+        slc_wborder_x = [
+            slice(
+                np.clip(w * i // nx - k_spill, 0, w),
+                np.clip(w * (i + 1) // nx + k_spill, 0, w),
+                None,
+            )
+            for i in range(nx)
+        ]
 
-        img_stamps = [image[sly, slx] for sly in slc_wborder_y
-                      for slx in slc_wborder_x]
-        ref_stamps = [refimage[sly, slx] for sly in slc_wborder_y
-                      for slx in slc_wborder_x]
+        img_stamps = [image[sly, slx] for sly in slc_wborder_y for slx in slc_wborder_x]
+        ref_stamps = [
+            refimage[sly, slx] for sly in slc_wborder_y for slx in slc_wborder_x
+        ]
 
         # After we do the subtraction we need to crop the extra borders in the
         # stamps.
@@ -545,13 +575,13 @@ def optimal_system(image, refimage, kernelshape=(11, 11), bkgdegree=None,
         bkg_collage = np.empty(image.shape)
         kernel_collage = []
         stamp_slices = [[asly, aslx] for asly in stamps_y for aslx in stamps_x]
-        for ind, ((sly_out, slx_out), (sly_in, slx_in)) in \
-                enumerate(zip(recover_slices, stamp_slices)):
+        for ind, ((sly_out, slx_out), (sly_in, slx_in)) in enumerate(
+            zip(recover_slices, stamp_slices)
+        ):
 
-            subt_strat = DiffStrategy(img_stamps[ind], ref_stamps[ind],
-                                      kernelshape,
-                                      bkgdegree,
-                                      **kwargs)
+            subt_strat = DiffStrategy(
+                img_stamps[ind], ref_stamps[ind], kernelshape, bkgdegree, **kwargs
+            )
             opti = subt_strat.get_optimal_image()
             ki = subt_strat.get_kernel()
             bgi = subt_strat.get_background()
