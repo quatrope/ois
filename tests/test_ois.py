@@ -3,7 +3,6 @@ import ois
 import numpy as np
 import os
 import varconv
-import scipy
 
 
 class TestPSFCorrect(unittest.TestCase):

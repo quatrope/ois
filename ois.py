@@ -114,7 +114,7 @@ class SubtractionStrategy(object):
         ]
         return bkg_c
 
-    def get_coeffs():
+    def get_coeffs(self):
         "Override this function to solve the matrix minimization system"
         return self.coeffs
 

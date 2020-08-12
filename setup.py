@@ -1,6 +1,5 @@
 from setuptools import setup, Extension
 import numpy
-import os
 
 # Get the version from astroalign file itself (not imported)
 with open("ois.py", "r") as f:
