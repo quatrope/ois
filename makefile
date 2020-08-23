@@ -2,24 +2,28 @@ CFLAGS = -std=c99
 SRC_DIR = src
 TEST_DIR = $(SRC_DIR)/tests
 OBJ_DIR = $(SRC_DIR)/obj
-OBJ = $(addprefix $(OBJ_DIR)/, test_ois_tools.o oistools.o)
+TEST_OBJ = $(addprefix $(OBJ_DIR)/, test_ois_tools.o oistools.o)
+OIS_OBJ = $(addprefix $(OBJ_DIR)/, fitshelper.o oistools.o)
 HEADERS = $(SRC_DIR)/ois_tools.h $(TEST_DIR)/test_ois_tools.h
 LIBS = -lm
 
-all: testois
+all: ois testois
 .PHONY: all clean
 
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
-src/obj/test_ois_tools.o: src/tests/test_ois_tools.c src/tests/test_ois_tools.h $(OBJ_DIR)
+ois: $(SRC_DIR)/main.c $(OIS_OBJ)
+	$(CC) $(CFLAGS) -I$(SRC_DIR) -lcfitsio $(OIS_OBJ) $(SRC_DIR)/main.c -o ois
+
+$(OBJ_DIR)/test_ois_tools.o: $(TEST_DIR)/test_ois_tools.c $(TEST_DIR)/test_ois_tools.h $(OBJ_DIR)
 	$(CC) $(CFLAGS) -I$(SRC_DIR) -c $(TEST_DIR)/test_ois_tools.c -o $(OBJ_DIR)/test_ois_tools.o
 
-src/obj/oistools.o: src/oistools.c src/oistools.h $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c src/oistools.c -o $(OBJ_DIR)/oistools.o
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-testois: $(OBJ) src/tests/test_main.c
-	$(CC) $(CFLAGS) -I$(SRC_DIR) -I$(TEST_DIR) $(OBJ) $(TEST_DIR)/test_main.c -lm -o testois
+testois: $(TEST_OBJ) $(TEST_DIR)/test_main.c
+	$(CC) $(CFLAGS) -I$(SRC_DIR) -I$(TEST_DIR) $(TEST_OBJ) $(TEST_DIR)/test_main.c -lm -o testois
 
 test:
 	./testois
