@@ -27,7 +27,7 @@ testois: $(TEST_OBJ) $(TEST_DIR)/test_main.c
 
 test:
 	./testois
-	./ois -ks 5 -kd 0 -sci src/tests/sample01.fits -ref src/tests/sample02.fits -o subt.fits
+	./ois -ks 5 -kd 0 -sci src/tests/sample_sciimg.fits -ref src/tests/sample_refimg.fits -o subt.fits
 	test -e subt.fits
 
 clean:
