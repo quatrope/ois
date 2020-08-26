@@ -14,7 +14,7 @@ $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
 
 ois: $(SRC_DIR)/main.c $(OIS_OBJ)
-	$(CC) $(CFLAGS) -I$(SRC_DIR) -lcfitsio $(OIS_OBJ) $(SRC_DIR)/main.c -o ois
+	$(CC) $(CFLAGS) -I$(SRC_DIR) $(OIS_OBJ) -lcfitsio -lm $(SRC_DIR)/main.c -o ois
 
 $(OBJ_DIR)/test_ois_tools.o: $(TEST_DIR)/test_ois_tools.c $(TEST_DIR)/test_ois_tools.h $(OBJ_DIR)
 	$(CC) $(CFLAGS) -I$(SRC_DIR) -c $(TEST_DIR)/test_ois_tools.c -o $(OBJ_DIR)/test_ois_tools.o
@@ -27,7 +27,10 @@ testois: $(TEST_OBJ) $(TEST_DIR)/test_main.c
 
 test:
 	./testois
+	./ois -ks 5 -kd 0 -sci src/tests/sample01.fits -ref src/tests/sample02.fits -o subt.fits
+	test -e subt.fits
 
 clean:
 	rm -rf $(OBJ_DIR)
 	rm -f testois
+	rm -f subt.fits
