@@ -7,7 +7,7 @@ OIS_OBJ = $(addprefix $(OBJ_DIR)/, fitshelper.o oistools.o)
 HEADERS = $(SRC_DIR)/ois_tools.h $(TEST_DIR)/test_ois_tools.h
 LIBS = -lm
 
-all: ois testois
+all: ois
 .PHONY: all clean
 
 $(OBJ_DIR):
@@ -25,7 +25,7 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h $(OBJ_DIR)
 testois: $(TEST_OBJ) $(TEST_DIR)/test_main.c
 	$(CC) $(CFLAGS) -I$(SRC_DIR) -I$(TEST_DIR) $(TEST_OBJ) $(TEST_DIR)/test_main.c -lm -o testois
 
-test:
+test: testois
 	./testois
 	./ois -ks 5 -kd 0 -sci src/tests/sample_sciimg.fits -ref src/tests/sample_refimg.fits -o subt.fits
 	test -e subt.fits
@@ -34,3 +34,4 @@ clean:
 	rm -rf $(OBJ_DIR)
 	rm -f testois
 	rm -f subt.fits
+	rm -f ois
