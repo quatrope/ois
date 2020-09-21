@@ -10,9 +10,9 @@
 
     Usage:
 
-        >>> import ois
+        >>> from ois import optimal_system
         >>> difference, optimalImage, optimalKernel, background =
-                                   ois.optimal_system(image, referenceImage)
+                                        optimal_system(image, referenceImage)
 
 
     (c) Martin Beroiz
@@ -36,7 +36,7 @@ __all__ = [
 
 
 class EvenSideKernelError(ValueError):
-    pass
+    ...
 
 
 def _has_mask(image):
@@ -447,44 +447,54 @@ def optimal_system(
     This is an implementation of a few Optimal Image Subtraction algorithms.
     They all (optionally) simultaneously fit a background.
 
-    gridshape: a tuple containing the number of vertical and horizontal
-    divisions of a grid. Subtraction will be performed on each grid element.
-    `None` is equivalent to a (1, 1) grid (no grid).
+    Args:
+        gridshape: A tuple containing the number of vertical and horizontal
+            divisions of a grid. Subtraction will be performed on each grid
+            element. ``None`` is equivalent to a ``(1, 1)`` grid (no grid).
 
-    kernelshape: shape of the kernel to use. Must be of odd size.
+        kernelshape: Shape of the kernel to use. Must be of odd size.
 
-    bkgdegree: degree of the polynomial to fit the background.
-    To turn off background fitting set this to None.
+        bkgdegree: Degree of the polynomial to fit the background.
+            To turn off background fitting set this to ``None``.
 
-    method: One of the following strings
-    * Bramich: A Delta basis for the kernel (all pixels fit
-      independently)
-    * AdaptiveBramich: Same as Bramich, but with a polynomial variation across
-      the image.
-      It needs the parameter poly_degree, which is the polynomial degree of the
-      variation.
-    * Alard-Lupton: A modulated multi-Gaussian kernel.
-      It needs the gausslist keyword.
-      gausslist is a list of dictionaries containing data of the gaussians
-      used in the decomposition of the kernel. Dictionary keywords are:
-      center, sx, sy, modPolyDeg
+        method: One of the following strings.
 
-    Extra parameters are passed to the individual methods.
-    poly_degree: needed only for AdaptiveBramich. It is the degree
-    of the polynomial for the kernel spatial variation.
+            * ``"Bramich"``: A Delta basis for the kernel (all pixels fit
+              independently)
+            * ``"AdaptiveBramich"``: Same as Bramich, but with a polynomial
+              variation across the image.
+              It needs the parameter ``poly_degree``, which is the polynomial
+              degree of the variation.
+            * ``"Alard-Lupton"``: A modulated multi-Gaussian kernel.
+              It needs the gausslist keyword.
 
-    gausslist: needed only for Alard-Lupton. A list of dictionaries with info
-    for the modulated multi-Gaussian.
-        Dictionary keys are:
-        center: a (row, column) tuple for the center of the Gaussian.
-            Default: kernel center.
-        modPolyDeg: the degree of the modulating polynomial. Default: 2
-        sx: sigma in x direction. Default: 2.
-        sy: sigma in y direction. Deafult: 2.
-        All keys are optional.
+        poly_degree: Needed only for AdaptiveBramich. It is the degree
+            of the polynomial for the kernel spatial variation.
 
-    Return (difference, optimal_image, kernel, background)
-    """.dedent()
+        gausslist: Needed only for Alard-Lupton. A list of dictionaries with
+            info for the modulated multi-Gaussian.
+            Dictionary keys are:
+
+                * center: a (row, column) tuple for the center of the Gaussian.
+                  Default: kernel center.
+                * modPolyDeg: the degree of the modulating polynomial.
+                  Default: 2
+                * sx: sigma in x direction. Default: 2.
+                * sy: sigma in y direction. Deafult: 2.
+
+            All keys are optional. Example::
+
+                gausslist=[{center: (5, 5), sx: 2., sy: 2., modPolyDeg: 3},
+                           {sx: 1.0, sy: 2.5, modPolyDeg: 1},
+                           {sx: 3.0, sy: 1.0},]
+
+    Returns:
+        difference, optimal_image, kernel, background
+
+    Raises:
+        EvenSideKernelError: If any dimension of ``kernelshape`` is even.
+
+    """
 
     kh, kw = kernelshape
 

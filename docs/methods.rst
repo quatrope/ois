@@ -24,20 +24,13 @@ In addition, each Gaussian is modulated with a polynomial of an arbitrary degree
     The centre, width and orientation of the Gaussians are fixed beforehand as well as the number of Gaussians to use in the expansion.
 
 In OIS this is specified with a list of dictionaries, one for each gaussian we want to use.
-Below is an example for a basis with 3 Gaussians:
+Below is an example of a basis with 3 Gaussians:
 
 .. code:: python
 
-    gausslist = [{center: (5, 5),
-                  sx: 2.
-                  sy: 2.
-                  modPolyDeg: 3},
-                 {sx: 1.0
-                  sy: 2.5
-                  modPolyDeg: 1},
-                 {sx: 3.0
-                  sy: 1.0},
-                ]
+    gausslist=[{center: (5, 5), sx: 2., sy: 2., modPolyDeg: 3},
+               {sx: 1.0, sy: 2.5, modPolyDeg: 1},
+               {sx: 3.0, sy: 1.0},]
 
 .. _bramich:
 
