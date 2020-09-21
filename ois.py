@@ -36,7 +36,7 @@ __all__ = [
 
 
 class EvenSideKernelError(ValueError):
-    ...
+    pass
 
 
 def _has_mask(image):
