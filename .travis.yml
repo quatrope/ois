@@ -35,9 +35,13 @@ jobs:
           script:
             - make
             - make test
+            - ./ois -ks 3 -kd 0 -ref src/tests/sample_refimg.fits -sci src/tests/sample_sciimg.fits -o thediff.fits
+            - test -f thediff.fits
 
         - language: c
           compiler: gcc
           script:
             - make
             - make test
+            - ./ois -ks 3 -kd 0 -ref src/tests/sample_refimg.fits -sci src/tests/sample_sciimg.fits -o thediff.fits
+            - test -f thediff.fits
