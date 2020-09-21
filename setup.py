@@ -28,7 +28,9 @@ setup(
     author="Martin Beroiz",
     author_email="martinberoiz@gmail.com",
     url="https://github.com/toros-astro/ois",
-    py_modules=["ois",],
+    py_modules=[
+        "ois",
+    ],
     ext_modules=[varconv],
     install_requires=["numpy>=1.6", "scipy>=0.16"],
     test_suite="tests",
