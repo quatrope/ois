@@ -1,28 +1,22 @@
 """
-    Optimal Image Subtraction (OIS) module
-    --------------------------------------
+    OIS is a package to perform optimal image subtraction on astronomical images.
+    It offers different methods to subtract images:
 
-    A collection of tools to perform optimal image differencing
-    for the Transient Optical Robotic Observatory of the South (TOROS).
+      * Modulated multi-Gaussian kernel
+      * Delta basis kernel
+      * Adaptive Delta Basis kernel
 
-    ### Usage example (from python):
+    Each method can (optionally) simultaneously fit and remove common background.
+
+    Usage:
 
         >>> import ois
         >>> difference, optimalImage, optimalKernel, background =
                                    ois.optimal_system(image, referenceImage)
 
-    (conv_image is the least square optimal approximation to image)
-
-    See optimalkernelandbkg docstring for more options.
-
-    ### Command line arguments:
-    * -h, --help: Prints this help and exits.
-    * -v, --version: Prints version information and exits.
 
     (c) Martin Beroiz
-
     email: <martinberoiz@gmail.com>
-
     University of Texas at San Antonio
 """
 
@@ -32,6 +26,13 @@ __version__ = "0.1.4"
 import numpy as np
 from scipy import signal
 from scipy import ndimage
+
+__all__ = [
+    "EvenSideKernelError",
+    "convolve2d_adaptive",
+    "eval_adpative_kernel",
+    "optimal_system",
+]
 
 
 class EvenSideKernelError(ValueError):
@@ -121,7 +122,9 @@ class SubtractionStrategy(object):
     def get_optimal_image(self):
         if self.optimal_image is not None:
             return self.optimal_image
-        opt_image = signal.convolve2d(self.refimage, self.get_kernel(), mode="same")
+        opt_image = signal.convolve2d(
+            self.refimage, self.get_kernel(), mode="same"
+        )
         if self.bkgdegree is not None:
             opt_image += self.get_background()
         if self.badpixmask is not None:
@@ -150,7 +153,9 @@ class SubtractionStrategy(object):
             return self.difference
         opt_image = self.get_optimal_image()
         if self.badpixmask is not None:
-            self.difference = np.ma.array(self.image - opt_image, mask=self.badpixmask)
+            self.difference = np.ma.array(
+                self.image - opt_image, mask=self.badpixmask
+            )
         else:
             self.difference = self.image - opt_image
         return self.difference
@@ -479,7 +484,7 @@ def optimal_system(
         All keys are optional.
 
     Return (difference, optimal_image, kernel, background)
-    """
+    """.dedent()
 
     kh, kw = kernelshape
 
@@ -499,7 +504,9 @@ def optimal_system(
 
     if gridshape is None or gridshape == (1, 1):
         # If there's no grid, do without it
-        subt_strat = DiffStrategy(image, refimage, kernelshape, bkgdegree, **kwargs)
+        subt_strat = DiffStrategy(
+            image, refimage, kernelshape, bkgdegree, **kwargs
+        )
         opt_image = subt_strat.get_optimal_image()
         kernel = subt_strat.get_kernel()
         background = subt_strat.get_background()
@@ -511,8 +518,12 @@ def optimal_system(
         h, w = image.shape
 
         # normal slices with no border
-        stamps_y = [slice(h * i // ny, h * (i + 1) // ny, None) for i in range(ny)]
-        stamps_x = [slice(w * i // nx, w * (i + 1) // nx, None) for i in range(nx)]
+        stamps_y = [
+            slice(h * i // ny, h * (i + 1) // ny, None) for i in range(ny)
+        ]
+        stamps_x = [
+            slice(w * i // nx, w * (i + 1) // nx, None) for i in range(nx)
+        ]
 
         # slices with borders where possible
         # Slices should be in (h * i // ny, h * (i + 1) // ny) but we add and
@@ -536,9 +547,13 @@ def optimal_system(
             for i in range(nx)
         ]
 
-        img_stamps = [image[sly, slx] for sly in slc_wborder_y for slx in slc_wborder_x]
+        img_stamps = [
+            image[sly, slx] for sly in slc_wborder_y for slx in slc_wborder_x
+        ]
         ref_stamps = [
-            refimage[sly, slx] for sly in slc_wborder_y for slx in slc_wborder_x
+            refimage[sly, slx]
+            for sly in slc_wborder_y
+            for slx in slc_wborder_x
         ]
 
         # After we do the subtraction we need to crop the extra borders in the
@@ -580,7 +595,11 @@ def optimal_system(
         ):
 
             subt_strat = DiffStrategy(
-                img_stamps[ind], ref_stamps[ind], kernelshape, bkgdegree, **kwargs
+                img_stamps[ind],
+                ref_stamps[ind],
+                kernelshape,
+                bkgdegree,
+                **kwargs
             )
             opti = subt_strat.get_optimal_image()
             ki = subt_strat.get_kernel()
