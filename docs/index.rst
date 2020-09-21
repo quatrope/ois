@@ -1,7 +1,7 @@
 Optimal Image Subtraction (OIS)
 ===============================
 
-**OIS** is a package to perform optimal image subtraction on astronomical images.
+**OIS** is a Python package and a C command-line program to perform optimal image subtraction on astronomical images.
 
 It offers different methods to subtract images:
 
@@ -49,5 +49,6 @@ Contents:
 
    installation
    usage
+   cprog
    methods
    api
