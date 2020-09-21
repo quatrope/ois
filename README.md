@@ -1,6 +1,6 @@
 # Optimal Image Subtraction (OIS)
 
-[![Build Status](https://travis-ci.org/toros-astro/ois.svg?branch=master)](https://travis-ci.org/toros-astro/ois.svg?branch=master)
+[![Build Status](https://travis-ci.org/toros-astro/ois.svg?branch=master)](https://travis-ci.org/github/toros-astro/ois?branch=master)
 [![codecov.io](https://codecov.io/github/toros-astro/ois/coverage.svg?branch=master)](https://codecov.io/github/toros-astro/ois?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/optimal-image-subtraction/badge/?version=latest)](http://optimal-image-subtraction.readthedocs.io/en/latest/?badge=latest)
 [![DOI](https://zenodo.org/badge/49916188.svg)](https://zenodo.org/badge/latestdoi/49916188)
