@@ -32,7 +32,7 @@ Refer to the :ref:`api` for a complete description of the method.
 Working with bad pixels (masks)
 -------------------------------
 
-If your reference image or test image have bad sections of pixels, it can distort the kernel estimation.
+If your reference image or test image have sections of bad pixels, it can distort the kernel estimation.
 This is especially true when the fitting algorithm uses all the pixels in the image.
 Saturated stars can also confuse the fit of the convolution kernel.
 

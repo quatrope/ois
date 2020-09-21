@@ -26,16 +26,12 @@ You can find a Jupyter notebook example with the main features at [http://toros-
 
     $ pip install ois
 
-Or from this distribution:
-
-    $ python setup.py install
-
 ***
 
 ## Minimal usage example
 
-    >>> import ois
-    >>> diff = ois.optimal_system(image, image_ref)[0]
+    >>> from ois import optimal_system
+    >>> diff = optimal_system(image, image_ref)[0]
 
 Check the [documentation](http://optimal-image-subtraction.readthedocs.io) for a full tutorial.
 
