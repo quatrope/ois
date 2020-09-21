@@ -31,6 +31,8 @@ To install the Python module:
 
 To instal and run the C command-line program, download this repo to your local machine and execute:
 
+    $ git clone https://github.com/toros-astro/ois.git
+    $ cd ois
     $ make ois
     $ ./ois --help
 
