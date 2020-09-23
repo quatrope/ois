@@ -1,13 +1,16 @@
 Usage
 =====
 
+Optimal Subtraction
+-------------------
+
 If your image has a relatively narrow field of view where your PSF doesn't change significatively across the field,
 you can use ``optimal_system`` on the default settings::
 
     >>> from ois import optimal_system
     >>> diff_image, optimal_image, kernel, background = optimal_system(test_image, refimage)
 
-Where (See :ref:`summary`):
+Where (See :ref:`theory`):
 
   * ``test_image`` is the image we want to analize, :math:`I`
   * ``refimage`` is an archive or reference image from the same location in the sky, :math:`R`
