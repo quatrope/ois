@@ -7,11 +7,10 @@ import varconv
 
 class TestPSFCorrect(unittest.TestCase):
     def setUp(self):
-        h, w = img_shape = (100, 100)
-        n_stars = 10
-        pos_x = np.random.randint(10, w - 10, n_stars)
-        pos_y = np.random.randint(10, h - 10, n_stars)
-        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        h, w = img_shape = (32, 32)
+        pos_x = [9, 24, 9, 24]
+        pos_y = [9, 9, 24, 24]
+        fluxes = [200, 300, 400, 500]
         self.img = np.zeros(img_shape)
         for x, y, f in zip(pos_x, pos_y, fluxes):
             self.img[y, x] = f
@@ -19,15 +18,19 @@ class TestPSFCorrect(unittest.TestCase):
 
         from scipy.ndimage.filters import gaussian_filter
 
-        self.img = gaussian_filter(self.img, sigma=1.7, mode="constant")
+        self.img = gaussian_filter(self.img, sigma=1.4, mode="constant")
         self.ref = gaussian_filter(self.ref, sigma=0.8, mode="constant")
 
     def test_AlardLupton_diffPSF(self):
+        # Assuming s_img > s_ref, the ideal convolution kernel for an image
+        # that has a Gaussian seeing PSF s_img and a reference with s_ref is
+        # s_tuned = sqrt(s_img **2 + s_ref ** 2)
+        s_tuned = np.sqrt(1.4 ** 2 - 0.8 ** 2)
         diff, opt, krn, bkg = ois.optimal_system(
             self.img,
             self.ref,
             method="Alard-Lupton",
-            gausslist=[{"sx": 1.5, "sy": 1.5}],
+            gausslist=[{"sx": s_tuned, "sy": s_tuned}],
         )
         norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
         # Assert it's a good subtraction
@@ -37,7 +40,9 @@ class TestPSFCorrect(unittest.TestCase):
         self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
     def test_Bramich_diffPSF(self):
-        diff, opt, krn, bkg = ois.optimal_system(self.img, self.ref, method="Bramich")
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref, method="Bramich"
+        )
         norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
         # Assert it's a good subtraction
         self.assertLess(norm_diff, 1e-3)
@@ -59,18 +64,19 @@ class TestPSFCorrect(unittest.TestCase):
 
 class TestAlignmentCorrect(unittest.TestCase):
     def setUp(self):
-        h, w = img_shape = (100, 100)
-        n_stars = 10
-        pos_x = np.random.randint(10, w - 10, n_stars)
-        pos_y = np.random.randint(10, h - 10, n_stars)
-        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        h, w = img_shape = (32, 32)
+        pos_x = [9, 24, 9, 24]
+        pos_y = [9, 9, 24, 24]
+        fluxes = [200, 300, 400, 500]
         self.img = np.zeros(img_shape)
         for x, y, f in zip(pos_x, pos_y, fluxes):
             self.img[y, x] = f
         self.ref = np.zeros(img_shape)
-        self.x0, self.y0 = 2, 1
+        self.x0, self.y0 = -1, 1
         for x, y, f in zip(pos_x, pos_y, fluxes):
-            self.ref[y + self.y0, x + self.x0] = f  # We add a small translation here
+            self.ref[
+                y + self.y0, x + self.x0
+            ] = f  # We add a small translation here
         # Let's add a Gaussian PSF response with same seeing for both images
         from scipy.ndimage.filters import gaussian_filter
 
@@ -100,7 +106,9 @@ class TestAlignmentCorrect(unittest.TestCase):
         self.assertFalse(isinstance(opt, np.ma.MaskedArray))
 
     def test_Bramich_align(self):
-        diff, opt, krn, bkg = ois.optimal_system(self.img, self.ref, method="Bramich")
+        diff, opt, krn, bkg = ois.optimal_system(
+            self.img, self.ref, method="Bramich"
+        )
         norm_diff = np.linalg.norm(diff) / np.linalg.norm(self.ref)
         # Assert it's a good subtraction
         self.assertLess(norm_diff, 1e-3)
@@ -122,11 +130,10 @@ class TestAlignmentCorrect(unittest.TestCase):
 
 class TestSmallRotationCorrect(unittest.TestCase):
     def setUp(self):
-        h, w = img_shape = (100, 100)
-        n_stars = 10
-        pos_x = np.random.randint(10, w - 10, n_stars)
-        pos_y = np.random.randint(10, h - 10, n_stars)
-        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        h, w = img_shape = (32, 32)
+        pos_x = [9, 24, 9, 24]
+        pos_y = [9, 9, 24, 24]
+        fluxes = [200, 300, 400, 500]
 
         self.img = np.zeros(img_shape)
         for x, y, f in zip(pos_x, pos_y, fluxes):
@@ -159,11 +166,10 @@ class TestSmallRotationCorrect(unittest.TestCase):
 
 class TestMasking(unittest.TestCase):
     def setUp(self):
-        h, w = img_shape = (100, 100)
-        n_stars = 10
-        pos_x = np.random.randint(10, w - 10, n_stars)
-        pos_y = np.random.randint(10, h - 10, n_stars)
-        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        h, w = img_shape = (32, 32)
+        pos_x = [9, 24, 9, 24]
+        pos_y = [9, 9, 24, 24]
+        fluxes = [200, 300, 400, 500]
         self.img = np.zeros(img_shape)
         for x, y, f in zip(pos_x, pos_y, fluxes):
             self.img[y, x] = f
@@ -171,27 +177,31 @@ class TestMasking(unittest.TestCase):
 
         from scipy.ndimage.filters import gaussian_filter
 
-        self.img = gaussian_filter(self.img, sigma=1.7, mode="constant")
+        self.img = gaussian_filter(self.img, sigma=1.4, mode="constant")
         self.ref = gaussian_filter(self.ref, sigma=0.8, mode="constant")
 
         mask = np.zeros(img_shape, dtype="bool")
         self.img_masked = self.img.copy()
-        self.img_masked[50:60, 50:60] = 5000
-        mask[50:60, 50:60] = True
+        self.img_masked[5:7, 5:7] = 5000
+        mask[5:7, 5:7] = True
         self.img_masked = np.ma.array(self.img_masked, mask=mask)
 
         mask = np.zeros(img_shape, dtype="bool")
         self.ref_masked = self.ref.copy()
-        self.ref_masked[80:90, 80:90] = 5000
-        mask[80:90, 80:90] = True
+        self.ref_masked[23:27, 23:27] = 5000
+        mask[23:27, 23:27] = True
         self.ref_masked = np.ma.array(self.ref_masked, mask=mask)
 
     def test_AlardLupton_mask(self):
+        # Assuming s_img > s_ref, the ideal convolution kernel for an image
+        # that has a Gaussian seeing PSF s_img and a reference with s_ref is
+        # s_tuned = sqrt(s_img **2 + s_ref ** 2)
+        s_tuned = np.sqrt(1.4 ** 2 - 0.8 ** 2)
         diff, opt, krn, bkg = ois.optimal_system(
             self.img_masked,
             self.ref_masked,
             method="Alard-Lupton",
-            gausslist=[{"sx": 1.5, "sy": 1.5}],
+            gausslist=[{"sx": s_tuned, "sy": s_tuned}],
         )
         norm_diff = np.linalg.norm(diff.compressed()) / np.linalg.norm(
             self.ref_masked.compressed()
@@ -231,11 +241,11 @@ class TestMasking(unittest.TestCase):
 
 class TestBackground(unittest.TestCase):
     def setUp(self):
-        h, w = img_shape = (100, 100)
-        n_stars = 10
-        pos_x = np.random.randint(10, w - 10, n_stars)
-        pos_y = np.random.randint(10, h - 10, n_stars)
-        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        h, w = img_shape = (32, 32)
+        pos_x = [9, 24, 9, 24]
+        pos_y = [9, 9, 24, 24]
+        fluxes = [200, 300, 400, 500]
+        self.img = np.zeros(img_shape)
         self.img = np.zeros(img_shape)
         for x, y, f in zip(pos_x, pos_y, fluxes):
             self.img[y, x] = f
@@ -243,19 +253,25 @@ class TestBackground(unittest.TestCase):
 
         from scipy.ndimage.filters import gaussian_filter
 
-        self.img = gaussian_filter(self.img, sigma=1.7, mode="constant")
+        self.img = gaussian_filter(self.img, sigma=1.4, mode="constant")
         self.ref = gaussian_filter(self.ref, sigma=0.8, mode="constant")
 
-        xv, yv = np.meshgrid(np.arange(h, dtype="float"), np.arange(w, dtype="float"))
+        xv, yv = np.meshgrid(
+            np.arange(h, dtype="float"), np.arange(w, dtype="float")
+        )
         self.bkg = 2 * (xv - 5) ** 2 + (yv - 4) ** 2 + 3 * xv * yv
         self.img += self.bkg
 
     def test_background_AlardLupton(self):
+        # Assuming s_img > s_ref, the ideal convolution kernel for an image
+        # that has a Gaussian seeing PSF s_img and a reference with s_ref is
+        # s_tuned = sqrt(s_img **2 + s_ref ** 2)
+        s_tuned = np.sqrt(1.4 ** 2 - 0.8 ** 2)
         diff, opt, krn, bkg = ois.optimal_system(
             self.img,
             self.ref,
             method="Alard-Lupton",
-            gausslist=[{"sx": 1.5, "sy": 1.5}],
+            gausslist=[{"sx": s_tuned, "sy": s_tuned}],
             bkgdegree=2,
         )
         # Assert it's a good subtraction
@@ -302,11 +318,10 @@ class TestBackground(unittest.TestCase):
 
 class TestGrid(unittest.TestCase):
     def setUp(self):
-        h, w = img_shape = (200, 300)
-        n_stars = 60
-        pos_x = np.random.randint(10, w - 10, n_stars)
-        pos_y = np.random.randint(10, h - 10, n_stars)
-        fluxes = 200.0 + np.random.rand(n_stars) * 300.0
+        h, w = img_shape = (32, 32)
+        pos_x = [9, 24, 9, 24]
+        pos_y = [9, 9, 24, 24]
+        fluxes = [200, 300, 400, 500]
         self.img = np.zeros(img_shape)
         for x, y, f in zip(pos_x, pos_y, fluxes):
             self.img[y, x] = f
@@ -314,10 +329,10 @@ class TestGrid(unittest.TestCase):
 
         from scipy.ndimage.filters import gaussian_filter
 
-        self.img = gaussian_filter(self.img, sigma=1.7, mode="constant")
+        self.img = gaussian_filter(self.img, sigma=1.4, mode="constant")
         self.ref = gaussian_filter(self.ref, sigma=0.8, mode="constant")
 
-    def the_grid_test(self, method_name, **kwargs):
+    def grid_test(self, method_name, **kwargs):
         gh, gw = 2, 2
         diff, opt, krn, bkg = ois.optimal_system(
             self.img,
@@ -369,13 +384,19 @@ class TestGrid(unittest.TestCase):
         self.assertLess(norm_diff, 1e-10)
 
     def test_AlardLupton_grid(self):
-        self.the_grid_test("Alard-Lupton", gausslist=[{"sx": 1.5, "sy": 1.5}])
+        # Assuming s_img > s_ref, the ideal convolution kernel for an image
+        # that has a Gaussian seeing PSF s_img and a reference with s_ref is
+        # s_tuned = sqrt(s_img **2 + s_ref ** 2)
+        s_tuned = np.sqrt(1.4 ** 2 - 0.8 ** 2)
+        self.grid_test(
+            "Alard-Lupton", gausslist=[{"sx": s_tuned, "sy": s_tuned}]
+        )
 
     def test_Bramich_grid(self):
-        self.the_grid_test("Bramich")
+        self.grid_test("Bramich")
 
     def test_AdaptiveBramich_grid(self):
-        self.the_grid_test("AdaptiveBramich", poly_degree=1)
+        self.grid_test("AdaptiveBramich", poly_degree=1)
 
 
 class TestVarConv(unittest.TestCase):
@@ -402,7 +423,9 @@ class TestVarConv(unittest.TestCase):
         n, m = 10, 10
         image = np.random.random((n, m))
         refimage = image.copy()
-        mm, b = varconv.gen_matrix_system(image, refimage, 0, None, k_side, deg, -1)
+        mm, b = varconv.gen_matrix_system(
+            image, refimage, 0, None, k_side, deg, -1
+        )
         coeffs = np.linalg.solve(mm, b)
         kc = k_side // 2
         result_kernel = coeffs.reshape((k_side, k_side))
@@ -418,7 +441,9 @@ class TestVarConv(unittest.TestCase):
         refimage = image.copy()
         mask = np.zeros((n, m), dtype="bool")
         mask[3:5, 3:5]
-        mm, b = varconv.gen_matrix_system(image, refimage, 1, mask, k_side, deg, -1)
+        mm, b = varconv.gen_matrix_system(
+            image, refimage, 1, mask, k_side, deg, -1
+        )
         coeffs = np.linalg.solve(mm, b)
         kc = k_side // 2
         result_kernel = coeffs.reshape((k_side, k_side))
@@ -442,7 +467,9 @@ class TestVarConv(unittest.TestCase):
         kernel = np.random.random((k_side, k_side, pol_dof))
         refimage = np.random.random((10, 10))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
-        mm, b = varconv.gen_matrix_system(image, refimage, 0, None, k_side, deg, -1)
+        mm, b = varconv.gen_matrix_system(
+            image, refimage, 0, None, k_side, deg, -1
+        )
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
         opt_ref = varconv.convolve2d_adaptive(refimage, result_kernel, deg)
@@ -471,7 +498,9 @@ class TestVarConv(unittest.TestCase):
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
-        mm, b = varconv.gen_matrix_system(image, refimage, 0, None, k_side, deg, -1)
+        mm, b = varconv.gen_matrix_system(
+            image, refimage, 0, None, k_side, deg, -1
+        )
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
 
@@ -498,7 +527,9 @@ class TestVarConv(unittest.TestCase):
         kernel = np.random.random((k_side, k_side, pol_dof))
         image = varconv.convolve2d_adaptive(refimage, kernel, deg)
 
-        mm, b = varconv.gen_matrix_system(image, refimage, 1, mask, k_side, deg, -1)
+        mm, b = varconv.gen_matrix_system(
+            image, refimage, 1, mask, k_side, deg, -1
+        )
         coeffs = np.linalg.solve(mm, b)
         result_kernel = coeffs.reshape((k_side, k_side, pol_dof))
 
@@ -516,7 +547,11 @@ class TestVarConv(unittest.TestCase):
         k_shape = (k_side, k_side)
 
         diff, opt_img, opt_k, bkg = ois.optimal_system(
-            image, refimage, kernelshape=k_shape, bkgdegree=None, method="Bramich"
+            image,
+            refimage,
+            kernelshape=k_shape,
+            bkgdegree=None,
+            method="Bramich",
         )
         diff, opt_img, opt_vark, bkg = ois.optimal_system(
             image,
@@ -580,7 +615,9 @@ class TestVarConv(unittest.TestCase):
             kernel,
             0,
         )
-        ois.convolve2d_adaptive(np.random.random((100, 100)), kernel.astype("int32"), 0)
+        ois.convolve2d_adaptive(
+            np.random.random((100, 100)), kernel.astype("int32"), 0
+        )
 
 
 class TestExceptions(unittest.TestCase):
@@ -615,7 +652,9 @@ class TestExceptions(unittest.TestCase):
 
     def test_convolve2d_array_dims(self):
         with self.assertRaises(ValueError):
-            ois.convolve2d_adaptive(np.zeros((10, 10, 2)), np.ones((3, 3, 6)), 2)
+            ois.convolve2d_adaptive(
+                np.zeros((10, 10, 2)), np.ones((3, 3, 6)), 2
+            )
         with self.assertRaises(ValueError):
             ois.convolve2d_adaptive(np.zeros((10, 10)), np.ones((9, 6)), 2)
 
