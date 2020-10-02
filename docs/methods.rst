@@ -50,7 +50,7 @@ In addition, each Gaussian is modulated with a polynomial of an arbitrary degree
 
 .. math::
     K &= \sum_i a_i B_i \\
-      &= \sum_n a_n \times \left[ \exp \left(- \frac{u^2 + v^2}{2 \sigma_n^2} \right) \sum_{d_n^x} \sum_{d_n^y} u^{d_n^x} v^{d_n^y} \right]
+      &= \sum_n a_n \times \left[ \exp \left(- \frac{(u - u_0)^2}{2 \sigma_u^2} + \frac{(v - v_0)^2}{2 \sigma_v^2} \right) \sum_{d_n^x} \sum_{d_n^y} u^{d_n^x} v^{d_n^y} \right]
 
 .. note::
     The centre, width and orientation of the Gaussians are fixed beforehand as well as the number of Gaussians to use in the expansion.
@@ -63,6 +63,14 @@ Below is an example of a basis with 3 Gaussians:
     gausslist=[{center: (5, 5), sx: 2., sy: 2., modPolyDeg: 3},
                {sx: 1.0, sy: 2.5, modPolyDeg: 1},
                {sx: 3.0, sy: 1.0},]
+
+Here ``center`` is the (row, column) of the center pixel of the Gaussian in the kernel.
+For example, for a kernel of shape ``(11, 17)``, ``center=(5, 8)`` would yield a centered Gaussian.
+Center coordinates may be ``float`` values. If not specified, ``center`` defaults to the kernel's center.
+
+The parameters ``sx`` and ``sy`` are the :math:`\sigma_u` and :math:`\sigma_v` of the Gaussian profile.
+
+The degree of the 2D polynomial that modulates the Gaussian is set by the parameter ``modPolyDeg``.
 
 .. _bramich:
 
