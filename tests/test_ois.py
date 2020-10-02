@@ -93,7 +93,7 @@ class TestAlignmentCorrect(unittest.TestCase):
                 {
                     "sx": 0.01,
                     "sy": 0.01,
-                    "center": (2 - self.x0, 2 - self.y0),
+                    "center": (2 - self.y0, 2 - self.x0),
                     "modPolyDeg": 0,
                 }
             ],
