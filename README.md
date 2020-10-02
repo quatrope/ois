@@ -1,12 +1,17 @@
 # Optimal Image Subtraction (OIS)
 
-[![Build Status](https://travis-ci.org/toros-astro/ois.svg?branch=master)](https://travis-ci.org/toros-astro/ois.svg?branch=master)
+[![Build Status](https://travis-ci.org/toros-astro/ois.svg?branch=master)](https://travis-ci.org/github/toros-astro/ois?branch=master)
 [![codecov.io](https://codecov.io/github/toros-astro/ois/coverage.svg?branch=master)](https://codecov.io/github/toros-astro/ois?branch=master)
 [![Documentation Status](https://readthedocs.org/projects/optimal-image-subtraction/badge/?version=latest)](http://optimal-image-subtraction.readthedocs.io/en/latest/?badge=latest)
+[![DOI](https://zenodo.org/badge/49916188.svg)](https://zenodo.org/badge/latestdoi/49916188)
+[![Updates](https://pyup.io/repos/github/toros-astro/ois/shield.svg)](https://pyup.io/repos/github/toros-astro/ois/)
+[![Python 3](https://pyup.io/repos/github/toros-astro/ois/python-3-shield.svg)](https://pyup.io/repos/github/toros-astro/ois/)
+[![PyPI version](https://badge.fury.io/py/ois.svg)](https://badge.fury.io/py/ois)
 
-***OIS*** is a package to perform optimal image subtraction on astronomical images.
+***OIS*** is a Python package to perform optimal image subtraction on astronomical images.
+It also has a companion command-line program written entirely in C.
 
-It offers different methods to subtract images:
+OIS offers different methods to subtract images:
 
  * Modulated multi-Gaussian kernel (as described in [Alard&Lupton (1998)][1])
  * Delta basis kernel (as described in [Bramich (2010)][2])
@@ -14,16 +19,37 @@ It offers different methods to subtract images:
 
 Each method can (optionally) simultaneously fit and remove common background.
 
+You can find a Jupyter notebook example with the main features at [http://toros-astro.github.io/ois](http://toros-astro.github.io/ois).
+
+***
+
+## Installation
+
+To install the Python module:
+
+    $ pip install ois
+
+To instal and run the C command-line program, download this repo to your local machine and execute:
+
+    $ git clone https://github.com/toros-astro/ois.git
+    $ cd ois
+    $ make ois
+    $ ./ois --help
+
+The C command-line program is somewhat limited in functionality compared to the Python module.
+Please see the [documentation](http://optimal-image-subtraction.readthedocs.io) for more information.
+
 ***
 
 ## Minimal usage example
 
-    >>> import ois
-    >>> diff = ois.optimal_system(image, image_ref)[0]
+    >>> from ois import optimal_system
+    >>> diff = optimal_system(image, image_ref)[0]
 
-More information available on docstrings
+Check the [documentation](http://optimal-image-subtraction.readthedocs.io) for a full tutorial.
 
 ***
+
 ## Other Parameters:
 
 **kernelshape**: shape of the kernel to use. Must be of odd size.
@@ -61,4 +87,4 @@ Extra parameters are passed to the individual methods.
 
 [1]: http://arxiv.org/abs/astro-ph/9712287 "A method for optimal image subtraction"
 [2]: http://arxiv.org/abs/0802.1273 "A New Algorithm For Difference Image Analysis"
-[3]: http://adswww.harvard.edu
+[3]: https://iopscience.iop.org/article/10.1086/588258 "Optimal Image Subtraction Method: Summary Derivations, Applications, and Publicly Shared Application Using IDL"
