@@ -79,6 +79,14 @@ Extra parameters are passed to the individual methods.
 * **sx**: sigma in x direction. Default: 2.
 * **sy**: sigma in y direction. Deafult: 2.
 
+## Other Similar Projects
+
+You may want to check this other projects for image subtraction.
+
+* [Properimage](https://properimage.readthedocs.io)
+* [Hotpants](https://github.com/acbecker/hotpants)
+* [LSST diffim](https://pipelines.lsst.io/modules/lsst.ip.diffim/)
+
 ***
 
 **Author**: Martin Beroiz
