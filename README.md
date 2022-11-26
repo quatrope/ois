@@ -8,6 +8,12 @@
 [![Python 3](https://pyup.io/repos/github/toros-astro/ois/python-3-shield.svg)](https://pyup.io/repos/github/toros-astro/ois/)
 [![PyPI version](https://badge.fury.io/py/ois.svg)](https://badge.fury.io/py/ois)
 
+### WARNING:
+
+This project is no longer maintained.
+
+***
+
 ***OIS*** is a Python package to perform optimal image subtraction on astronomical images.
 It also has a companion command-line program written entirely in C.
 
